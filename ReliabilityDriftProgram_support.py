@@ -18,8 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly
-import plotly.graph_objs as go
-import plotly.io as pio
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -143,8 +141,10 @@ def combinecsv(listoffiles):
 
 def plotMPIdata(test_dataframe):
     '''
-    Takes a test type (LIV, NFT or FFT) and a dataframe and creates an interactive grouped box plot for the data in the dataframe. 
-    The labels that the plots are grouped by are taken from the dataframe headers fed into the plot function.
+    Takes a test type (LIV, NFT or FFT) and a dataframe and creates an interactive grouped box plot via local host which
+    opens in the user's default browser.
+
+    The labels that the plots are grouped-by are taken from the dataframe headers fed into the plot function.
     '''
 
     #Labels for plotting
@@ -200,15 +200,8 @@ def plotMPIdata(test_dataframe):
              yanchor = 'bottom')])
     
     fig = dict({'data': data}, layout = dict(updatemenus=updatemenus))
-    try: 
-        if not os.path.exists('images'):
-            os.mkdir('images')
-        print('help')
-        pio.write_image(fig, 'images/fig1.jpg')
-        print('done')
 
-    finally:
-        plotly.offline.plot(fig, validate=False)
+    plotly.offline.plot(fig, validate=False)
 
 def saveMPIdata_universal(test_dataframe, save_location, flyers=True):
     '''
