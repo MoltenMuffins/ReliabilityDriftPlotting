@@ -7,19 +7,11 @@
 
 import sys
 
-try:
-    import Tkinter as tk
-except ImportError:
-    import tkinter as tk
-
-try:
-    import ttk
-    py3 = False
-except ImportError:
-    import tkinter.ttk as ttk
-    py3 = True
+import tkinter as tk
+import tkinter.ttk as ttk
 
 import ReliabilityDriftProgram_support
+
 
 def vp_start_gui():
     '''Starting point when module is the main routine.'''
@@ -191,8 +183,11 @@ class Toplevel1:
         self.TestTypeFrame_2.configure(highlightbackground="#d9d9d9")
         self.TestTypeFrame_2.configure(highlightcolor="black")
         self.TestTypeFrame_2.configure(width=450)
-
-        self.TProgressbar1 = ttk.Progressbar(self.TestTypeFrame_2)
+        
+        self.TProgressbar1 = ttk.Progressbar(self.TestTypeFrame_2, 
+                                            mode='determinate', 
+                                            maximum=15, 
+                                            var=ReliabilityDriftProgram_support.progress_var)
         self.TProgressbar1.place(relx=0.044, rely=0.429, relwidth=0.9
                 , relheight=0.0, height=22, bordermode='ignore')
         self.TProgressbar1.configure(length="400")
