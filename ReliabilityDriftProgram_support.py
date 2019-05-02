@@ -5,7 +5,6 @@
 #  in conjunction with Tcl version 8.6
 #    Apr 25, 2019 01:32:38 AM +0800  platform: Windows NT
 #We use Glob to work with files
-import gc
 import glob
 import os
 import re
@@ -135,7 +134,6 @@ def combinecsv(listoffiles):
         else:
             new_df = makemulti(universal_load_csv(file),cycle(file))
             main_df = main_df.append(new_df, sort=False)
-            gc.collect()
             # main_df = main_df.sort_index(by=['TIMESTAMP'])
     return main_df
 
@@ -314,26 +312,32 @@ def build_database():
     '''
     folderpath = askdirectory(parent=root,initialdir="/", title='Please select an RTO folder')
 
-    progress_var = 0
+    # This prevents the program from hanging if the task is cancelled
+    if folderpath == '':
+        return root.update()
+
     # We create a separate list for each test type + stress type pair as we will save
     for stress_type in ('HTOL', 'THB', 'TH', 'TC', 'HTSL'):
         for measurement_type in ('FFT', 'LIV', 'NFT'):
             list_of_files = glob.glob(folderpath+'/{}/**/*{}.csv'.format(stress_type, measurement_type), recursive=True)
             # Determine RTO number of the folder
-            m = re.search(r'RTO.(\d{1,})', list_of_files[0], flags=re.IGNORECASE)
-            rto_num = str(m.group(1))
             
-            # Define the location to save the files to
-            savepath = folderpath + '/{}/RTO-{}_{}_Database.csv'.format(stress_type, rto_num, measurement_type)
-            try:
-                main_df = combinecsv(list_of_files)
-                main_df.to_csv(savepath)
-            except:
-                print('fail')
-            progress_var += 1
-            root.update()
+            if len(list_of_files) == 0:
+                print('Stress: {} and Test: {} not found'.format(stress_type, measurement_type))
+                pass
 
-    progress_var = 0
+            else:
+                m = re.search(r'RTO.(\d{1,})', list_of_files[0], flags=re.IGNORECASE)
+                rto_num = str(m.group(1))
+                
+                # Define the location to save the files to
+                savepath = folderpath + '/{}/RTO-{}_{}_Database.csv'.format(stress_type, rto_num, measurement_type)
+                try:
+                    main_df = combinecsv(list_of_files)
+                    main_df.to_csv(savepath)
+                except:
+                    print('fail')
+
     print('done')
 
 def read_database(filepath):
@@ -397,7 +401,6 @@ def drift_calculation():
     '''
     stringoffiles = askopenfilenames(filetypes=(("CSV files", "*.csv"), ("All files", "*.*")))
 
-
     # This prevents the program from hanging if the task is cancelled
     if stringoffiles == '':
         return root.update()
@@ -439,11 +442,11 @@ def file_plot_interactive():
     print(stringoffiles)
     listoffiles = root.tk.splitlist(stringoffiles)
     for i in listoffiles:
-        try:
-            main_df = pd.read_csv(i)
-            plotMPIdata(main_df)
-        except:
-            print('interactive plot failed')
+        # try:
+        main_df = pd.read_csv(i)
+        plotMPIdata(main_df)
+        # except:
+        #     print('interactive plot failed')
 
     sys.stdout.flush()
 
@@ -468,32 +471,36 @@ def folder_save_img():
     if folderpath == '':
         return root.update()
 
-    # We create a separate list for each test type as we will plot them separately
-
-    # FFTfiles = glob.glob(folderpath+'/**/*FFT.csv', recursive=True)
-    # NFTfiles = glob.glob(folderpath+'/**/*NFT.csv', recursive=True)
-    # LIVfiles = glob.glob(folderpath+'/**/*LIV.csv', recursive=True)
-    database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
-
-
-    for file in database_files:
-        # try:
-            # main_df = combinecsv(listoffiles)
-            # plotMPIdata(read_test_type, main_df)
-            main_df = pd.read_csv(file)
-            print(main_df.head())
-
-            save_location = folderpath+'/{}_boxplot/'.format(findtesttype(file))
-            if not os.path.exists(save_location):
-                os.makedirs(save_location)
+    for stress_type in ('HTOL', 'THB', 'TH', 'TC', 'HTSL'):
+        for measurement_type in ('FFT', 'LIV', 'NFT'):
+            # We create a separate list for each test type as we will plot them separately
+            # Determine RTO number of the folder
+            database_files = glob.glob(folderpath+'/{}/*_{}_Database.csv'.format(stress_type, measurement_type), recursive=True)
             
-            # main_df = main_df.dropna(axis='columns')
-            # main_df.to_csv(save_location+'{}hey4.csv'.format(findtesttype(listoffiles[0])))
-            
-            saveMPIdata_universal(main_df, save_location)
-            del main_df # Garbage Collect main_df to free up memory  
-        # except:
-        #     print('something went wrong')
+            if len(database_files) == 0:
+                print('Stress: {} and Test: {} not found'.format(stress_type, measurement_type))
+                pass
+
+            else:
+            # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
+                for file in database_files:
+                    # try:
+                        # main_df = combinecsv(listoffiles)
+                        # plotMPIdata(read_test_type, main_df)
+                        main_df = pd.read_csv(file)
+                        print(main_df.head())
+
+                        save_location = folderpath+'/{}/{}_boxplot/'.format(stress_type, measurement_type)
+                        if not os.path.exists(save_location):
+                            os.makedirs(save_location)
+                        
+                        # main_df = main_df.dropna(axis='columns')
+                        # main_df.to_csv(save_location+'{}hey4.csv'.format(findtesttype(listoffiles[0])))
+                        
+                        saveMPIdata_universal(main_df, save_location)
+                        del main_df # Garbage Collect main_df to free up memory  
+                    # except:
+                    #     print('something went wrong')
     print('Complete')
     sys.stdout.flush()
 

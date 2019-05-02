@@ -120,7 +120,7 @@ class Toplevel1:
         self.build_database_button.configure(text='''Compile Files to Database''')
         self.build_database_button.configure(wraplength="110")
         tooltip_font = "TkDefaultFont"
-        ToolTip(self.build_database_button, tooltip_font, '''Click to select files belonging to a single RTO to add them to a database for that RTO.''', delay=0.5)
+        ToolTip(self.build_database_button, tooltip_font, '''Click to select an RTO folder to add them to a database for that RTO, sorted by stress type and test type.''', delay=0.5)
 
         self.plotting_frame = tk.LabelFrame(top)
         self.plotting_frame.place(relx=0.117, rely=0.5, relheight=0.226
@@ -216,7 +216,7 @@ class ToolTip(tk.Toplevel):
     ToolTip constructor
     """
     def __init__(self, wdgt, tooltip_font, msg=None, msgFunc=None,
-                 delay=1, follow=True):
+                 delay=0.2, follow=True):
         """
         Initialize the ToolTip
 
