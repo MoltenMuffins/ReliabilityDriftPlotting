@@ -99,10 +99,10 @@ class Toplevel1:
         self.drift_calculation_button.configure(highlightcolor="black")
         self.drift_calculation_button.configure(pady="0")
         self.drift_calculation_button.configure(relief='flat')
-        self.drift_calculation_button.configure(text='''Compute Drift from Database''')
+        self.drift_calculation_button.configure(text='''2. Compute Drift from Database''')
         self.drift_calculation_button.configure(wraplength="110")
         tooltip_font = "TkDefaultFont"
-        ToolTip(self.drift_calculation_button, tooltip_font, '''Select the folder for which you would like to calculate drift metrics for.''', delay=0.5)
+        ToolTip(self.drift_calculation_button, tooltip_font, '''Select the folder for which you would like to calculate drift metrics for.''', delay=0.2)
 
         self.build_database_button = tk.Button(self.database_frame)
         self.build_database_button.place(relx=0.044, rely=0.316, height=53
@@ -117,10 +117,10 @@ class Toplevel1:
         self.build_database_button.configure(highlightcolor="black")
         self.build_database_button.configure(pady="0")
         self.build_database_button.configure(relief='flat')
-        self.build_database_button.configure(text='''Compile Files to Database''')
+        self.build_database_button.configure(text='''1. Build RTO Folder Database''')
         self.build_database_button.configure(wraplength="110")
         tooltip_font = "TkDefaultFont"
-        ToolTip(self.build_database_button, tooltip_font, '''Click to select an RTO folder to add them to a database for that RTO, sorted by stress type and test type.''', delay=0.5)
+        ToolTip(self.build_database_button, tooltip_font, '''Click to select an RTO folder to add them to a database for that RTO, sorted by stress type and test type.''', delay=0.2)
 
         self.plotting_frame = tk.LabelFrame(top)
         self.plotting_frame.place(relx=0.117, rely=0.5, relheight=0.226
@@ -148,10 +148,10 @@ class Toplevel1:
         self.folder_save_img_button.configure(highlightcolor="black")
         self.folder_save_img_button.configure(pady="0")
         self.folder_save_img_button.configure(relief='flat')
-        self.folder_save_img_button.configure(text='''Plot All Files In Folder (Save to .jpg)''')
+        self.folder_save_img_button.configure(text='''3b. Plot All Files In Folder (Save to .jpg)''')
         self.folder_save_img_button.configure(wraplength="150")
         tooltip_font = "TkDefaultFont"
-        ToolTip(self.folder_save_img_button, tooltip_font, '''Select a folder containing the files you would like to plot.''', delay=0.5)
+        ToolTip(self.folder_save_img_button, tooltip_font, '''Select a folder containing the files you would like to plot.''', delay=0.2)
 
         self.file_plot_interactive_button = tk.Button(self.plotting_frame)
         self.file_plot_interactive_button.place(relx=0.044, rely=0.316, height=53
@@ -166,31 +166,31 @@ class Toplevel1:
         self.file_plot_interactive_button.configure(highlightcolor="black")
         self.file_plot_interactive_button.configure(pady="0")
         self.file_plot_interactive_button.configure(relief='flat')
-        self.file_plot_interactive_button.configure(text='''Select Files To Plot (Interactive)''')
+        self.file_plot_interactive_button.configure(text='''3a. Select Files To Plot (Interactive)''')
         self.file_plot_interactive_button.configure(wraplength="150")
         tooltip_font = "TkDefaultFont"
-        ToolTip(self.file_plot_interactive_button, tooltip_font, '''Select files to view an interactive plot without saving them to a database.''', delay=0.5)
+        ToolTip(self.file_plot_interactive_button, tooltip_font, '''Select files to view an interactive plot without saving them to a database.''', delay=0.2)
 
-        self.TestTypeFrame_2 = tk.LabelFrame(top)
-        self.TestTypeFrame_2.place(relx=0.117, rely=0.738, relheight=0.167
-                , relwidth=0.75)
-        self.TestTypeFrame_2.configure(relief='groove')
-        self.TestTypeFrame_2.configure(font="-family {Segoe UI} -size 9")
-        self.TestTypeFrame_2.configure(foreground="#1e1e1e")
-        self.TestTypeFrame_2.configure(labelanchor="n")
-        self.TestTypeFrame_2.configure(text='''Task Progress''')
-        self.TestTypeFrame_2.configure(background="#ffffff")
-        self.TestTypeFrame_2.configure(highlightbackground="#d9d9d9")
-        self.TestTypeFrame_2.configure(highlightcolor="black")
-        self.TestTypeFrame_2.configure(width=450)
+        # self.TestTypeFrame_2 = tk.LabelFrame(top)
+        # self.TestTypeFrame_2.place(relx=0.117, rely=0.738, relheight=0.167
+        #         , relwidth=0.75)
+        # self.TestTypeFrame_2.configure(relief='groove')
+        # self.TestTypeFrame_2.configure(font="-family {Segoe UI} -size 9")
+        # self.TestTypeFrame_2.configure(foreground="#1e1e1e")
+        # self.TestTypeFrame_2.configure(labelanchor="n")
+        # self.TestTypeFrame_2.configure(text='''Task Progress''')
+        # self.TestTypeFrame_2.configure(background="#ffffff")
+        # self.TestTypeFrame_2.configure(highlightbackground="#d9d9d9")
+        # self.TestTypeFrame_2.configure(highlightcolor="black")
+        # self.TestTypeFrame_2.configure(width=450)
         
-        self.TProgressbar1 = ttk.Progressbar(self.TestTypeFrame_2, 
-                                            mode='determinate', 
-                                            maximum=15, 
-                                            var=ReliabilityDriftProgram_support.progress_var)
-        self.TProgressbar1.place(relx=0.044, rely=0.429, relwidth=0.9
-                , relheight=0.0, height=22, bordermode='ignore')
-        self.TProgressbar1.configure(length="400")
+        # self.TProgressbar1 = ttk.Progressbar(self.TestTypeFrame_2, 
+        #                                     mode='determinate', 
+        #                                     maximum=15, 
+        #                                     var=ReliabilityDriftProgram_support.progress_var)
+        # self.TProgressbar1.place(relx=0.044, rely=0.429, relwidth=0.9
+        #         , relheight=0.0, height=22, bordermode='ignore')
+        # self.TProgressbar1.configure(length="400")
 
 # ======================================================
 # Modified by Rozen to remove Tkinter import statements and to receive 
