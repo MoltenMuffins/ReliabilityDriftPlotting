@@ -319,7 +319,7 @@ def saveMPIdata_universal(test_dataframe, save_location, stress, drift=False, fl
         fontspacing = 0.27  # 0.27
 
         """ This actually adds the numbers to the various points of the boxplots"""
-        for element in ["whiskers", "medians", "caps"]:
+        for element in ["medians", "caps"]:
             for line in bp[element]:
                 # Get the position of the element. y is the label you want
                 (x_l, y), (x_r, _) = line.get_xydata()
@@ -345,15 +345,17 @@ def saveMPIdata_universal(test_dataframe, save_location, stress, drift=False, fl
                             fontsize=fontsize,
                         )
 
-                    elif element == "whiskers":
-                        ax.text(
-                            x_line_center + fontspacing,
-                            y_line_center,  # Position
-                            numformat % y,  # Value (3f = 3 decimal float)
-                            verticalalignment="center",  # Centered vertically with line
-                            color="tab:blue",  # Value for whiskers will be tableau blue
-                            fontsize=fontsize,
-                        )
+                    # Disable quartile numbers
+                    # elif element == "whiskers":
+                    #     ax.text(
+                    #         x_line_center + fontspacing,
+                    #         y_line_center,  # Position
+                    #         numformat % y,  # Value (3f = 3 decimal float)
+                    #         verticalalignment="center",  # Centered vertically with line
+                    #         color="tab:blue",  # Value for whiskers will be tableau blue
+                    #         fontsize=fontsize,
+                    #    )
+                    
                     else:
                         ax.text(
                             x_line_center + fontspacing,
@@ -437,9 +439,9 @@ def build_database():
     If any files are excel files, sheets with sheet names from 0 - 1000 will be
     processed into the dataset with empty sheets being ignored.
 
-    Data is saved in .csv files stored in the same folder with the following directory structure:
+    Data is saved in .csv files stored in the same folder with the following folder_name structure:
     '[relative path] > [RTO Number] > [Stress_Test] > RTO-number_MeasurementType_Data.csv'.
-    An example of this directory structure would be 
+    An example of this folder_name structure would be 
     'C:/Datalogs/RTO-4149/HTSL/RTO-4149_NFT_Data.csv'
     """
     folderpath = askdirectory(
@@ -452,8 +454,21 @@ def build_database():
 
     print('Building Database...')
 
+    # Obtain folder names in selected directory using Glob and OS
+    list_of_folders = glob.glob(folderpath + '/*')
+    folder_list = []
+    for i in list_of_folders:
+        folder_list.append(os.path.basename(i))
+    
+    # Add folder names that fit our stress types to "stress_list"
+    stress_list = []
+    for folder_name in folder_list:
+        for stress in ["HTOL", "TH", "TC", "HTSL"]:
+            if stress in folder_name:
+                stress_list.append(folder_name)
+
     # We create a separate list for each test type + stress type pair as we will save
-    for stress_type in ("HTOL", "THB", "TH", "TC", "HTSL"):
+    for stress_type in stress_list:
         for measurement_type in ("FFT", "LIV", "NFT"):
             list_of_files = glob.glob(
                 folderpath + "/{}/**/*{}.csv".format(stress_type, measurement_type),
@@ -672,19 +687,21 @@ def folder_save_img():
 
     Saves files in the second lowest folder ie.
     '[relative path] > [RTO Number] > [Stress_Test_Plot] > [Measurement_Type Plot Folder]'
-    An example of this directory structure would be 
+    An example of this folder_name structure would be 
     'C:/Datalogs/RTO-4149/HTSL/NFT_boxplot'
     """
     folderpath = askdirectory(
-        parent=root, initialdir="/", title="Please select a directory"
+        parent=root, initialdir="/", title="Please select a folder_name"
     )
 
     # This prevents the program from hanging if the task is cancelled
     if folderpath == "":
         return root.update()
 
-    for stress_type in tqdm(("HTOL", "THB", "TH", "TC", "HTSL")):
-        for measurement_type in tqdm(("FFT", "LIV", "NFT")):
+    
+
+    for stress_type in ("HTOL", "THB", "TH", "TC", "HTSL"):
+        for measurement_type in ("FFT", "LIV", "NFT"):
             # We create a separate list for each test type as we will plot them separately
             # Determine RTO number of the folder
             database_files = glob.glob(

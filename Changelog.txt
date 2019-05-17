@@ -16,6 +16,7 @@
  | |___|  _  |/ ___ \| |\  | |_| | |___| |__| |_| | |_| |                    
   \____|_| |_/_/   \_|_| \_|\____|_____|_____\___/ \____|                    
                                                           
+By Evan Chong, Quality Intern.
 
 ################ 09 May 2019 ################
 Changes:
@@ -50,12 +51,15 @@ Pending Features:
 5. Fix bugs with raw data interactive plot
 6. Add HTOL1_ref, HTOL2_ref
 7. Folder for database
+8. Remove quartile numbers from plots
 
 ################ 17 May 2019 ################
 Changes:
 1. Bugs squashed:
 	- Build_Database() sometimes forgets to check cycle time of files when putting them together and assigns all data to 0 hours.
 	- Database files not sorted by hours
+2. Added "Known Bugs" list to Changelog
+3. Removed quartile numbers from plots
 
 Pending Features:
 1. Automatic SNX replacement
@@ -64,3 +68,6 @@ Pending Features:
 4. Add HTOL1, HTOL2
 5. Add HTOL1_ref, HTOL2_ref
 6. Folder for database
+
+Known Bugs:
+1. AMS logo not included in .exe file
