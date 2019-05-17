@@ -43,6 +43,24 @@ Changes:
 5. Tooltip color changed from yellow to blue
 
 Pending Features:
-3. Automatic SNX replacement
-4. Automatic rescaling of numbers to avoid numbers protruding from plots
-5. Parallel processing for Database Building
+1. Automatic SNX replacement
+2. Automatic rescaling of numbers to avoid numbers protruding from plots
+3. Parallel processing for Database Building
+4. Add HTOL1, HTOL2
+5. Fix bugs with raw data interactive plot
+6. Add HTOL1_ref, HTOL2_ref
+7. Folder for database
+
+################ 17 May 2019 ################
+Changes:
+1. Bugs squashed:
+	- Build_Database() sometimes forgets to check cycle time of files when putting them together and assigns all data to 0 hours.
+	- Database files not sorted by hours
+
+Pending Features:
+1. Automatic SNX replacement
+2. Automatic rescaling of numbers to avoid numbers protruding from plots
+3. Parallel processing for Database Building
+4. Add HTOL1, HTOL2
+5. Add HTOL1_ref, HTOL2_ref
+6. Folder for database

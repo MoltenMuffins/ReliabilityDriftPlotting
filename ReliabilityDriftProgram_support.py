@@ -6,6 +6,8 @@
 #   May 10, 2019 05:28:54 PM +0800  platform: Windows NT
 # App Icon made by https://www.freepik.com/ from www.flaticon.com
 
+print('Starting Backend...')
+
 import glob
 import os
 import re
@@ -14,6 +16,10 @@ from tempfile import TemporaryFile
 from tkinter import filedialog
 from tkinter.filedialog import askdirectory, askopenfilenames
 
+# if os.name == "posix":
+#     import matplotlib
+
+#     matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -114,7 +120,10 @@ def cycle(filename):
     try:
         # Searches for HXXXX, CXXXX, XXXXC or XXXXH in the filename where XXXX is the cycle time number
         m = re.search(r"(\d{1,}).?[CHX]|[CHX].?(\d{1,})", filename, flags=re.IGNORECASE)
-        numcycle = int(m.group(1))
+        try:
+            numcycle = int(m.group(1))
+        except:
+            numcycle = int(m.group(2))
     except:
         numcycle = 0
     return numcycle
@@ -167,7 +176,7 @@ def serial_number(filename):
 
 
 # Read Stress Type from filepath
-def stress_type(filename):
+def find_stress_type(filename):
     # We use regex search to obtain SN number
     m = re.search("(HTOL)|(HTSL)|(THB)|(TC)|(TH)", filename, flags=re.IGNORECASE)
     stress = str(m.group(1))
@@ -197,12 +206,18 @@ def combinecsv(listoffiles):
     the hours for each of the files.
     """
     for file in listoffiles:
+        # print('Processing {}'.format(file))
         if file == listoffiles[0]:
             main_df = makemulti(universal_load_csv(file), cycle(file))
+        elif "retest" in file.lower():
+            tqdm.write('Skipping Retest File: {}'.format(file))
+            continue
+        elif "sn" in file.lower():
+            tqdm.write('Skipping Retest File: {}'.format(file))
+            continue
         else:
             new_df = makemulti(universal_load_csv(file), cycle(file))
             main_df = main_df.append(new_df, sort=False)
-            # main_df = main_df.sort_index(by=['TIMESTAMP'])
     return main_df
 
 
@@ -215,12 +230,12 @@ def plotMPIdata(test_dataframe, drift=False):
     """
 
     # Labels for plotting
-    test_dataframe.reset_index(level=0, inplace=True)
     label_raw = test_dataframe.columns.values.tolist()
 
     if drift == False:
         testlabels = label_raw[9:]
     else:
+        test_dataframe.reset_index(level=0, inplace=True)
         testlabels = label_raw[2:]
 
     # Generate dictlist for data
@@ -249,7 +264,7 @@ def plotMPIdata(test_dataframe, drift=False):
         if drift == False:
             plotname = label
         else:
-            plotname = label+' Drift'
+            plotname = label + " Drift"
         new_dict = dict(
             label=plotname, method="update", args=[{"visible": temporary_list}]
         )
@@ -283,7 +298,7 @@ def plotMPIdata(test_dataframe, drift=False):
     plotly.offline.plot(fig, validate=False)
 
 
-def saveMPIdata_universal(test_dataframe, save_location, drift=False, flyers=True):
+def saveMPIdata_universal(test_dataframe, save_location, stress, drift=False, flyers=True):
     """
     This function plots boxplots with matplotlib and saves them in a specified save_location.
     """
@@ -306,9 +321,9 @@ def saveMPIdata_universal(test_dataframe, save_location, drift=False, flyers=Tru
         """ This actually adds the numbers to the various points of the boxplots"""
         for element in ["whiskers", "medians", "caps"]:
             for line in bp[element]:
-            # Get the position of the element. y is the label you want
+                # Get the position of the element. y is the label you want
                 (x_l, y), (x_r, _) = line.get_xydata()
-                if not np.isnan(y): # Make sure datapoints exist
+                if not np.isnan(y):  # Make sure datapoints exist
                     x_line_center = x_l + (x_r - x_l) / 2
                     y_line_center = y
                     # Format Data Callouts based on magnitude
@@ -390,7 +405,11 @@ def saveMPIdata_universal(test_dataframe, save_location, drift=False, flyers=Tru
         )
         bp_dict = series_values_as_dict(boxplot)
         add_values(bp_dict, axes)
-        plt.title("")
+        if drift == False:
+            plt.title("Boxplot grouped by Hours under {}".format(stress))
+        else:
+            plt.title("Boxplot of Drift for {}".format(stress))
+        plt.suptitle("")
         plt.xlabel("Hours", fontsize=16)
         plt.ylabel(label, fontsize=16)
         plt.xticks(fontsize=12)
@@ -431,6 +450,8 @@ def build_database():
     if folderpath == "":
         return root.update()
 
+    print('Building Database...')
+
     # We create a separate list for each test type + stress type pair as we will save
     for stress_type in ("HTOL", "THB", "TH", "TC", "HTSL"):
         for measurement_type in ("FFT", "LIV", "NFT"):
@@ -459,9 +480,10 @@ def build_database():
                 try:
                     main_df = combinecsv(list_of_files)
                     main_df.dropna(subset=["PART_INDEX"], inplace=True)
+                    main_df = main_df.sort_values(by='TIMESTAMP')
                     main_df.to_csv(savepath)
                 except:
-                    print("fail")
+                    print("[ERROR]: Please close existing RTO Database files before building database")
 
     print("RTO Database Build Completed")
 
@@ -479,7 +501,6 @@ def generate_drift_statistics(dataframe, savelocation):
     Calculates the following drift statistics: Average Drift, Absolute Average Drift, Maximum Absolute Drift
     and Mininum Absolute Drift.
     """
-
     # Labels for calculation
     dataframe.sort_values(by=["TIMESTAMP"], inplace=True)
     label_raw = dataframe.columns.values.tolist()
@@ -584,6 +605,8 @@ def drift_calculation():
     if stringoffiles == "":
         return root.update()
 
+    print('Calculating Drift...')
+
     listoffiles = root.tk.splitlist(stringoffiles)
     for file in listoffiles:
         # try:
@@ -682,7 +705,6 @@ def folder_save_img():
 
             else:
                 # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
-                pbar = tqdm(total=listlen)
                 for file in database_files:
                     # try:
                     # main_df = combinecsv(listoffiles)
@@ -699,24 +721,25 @@ def folder_save_img():
                     # main_df = main_df.dropna(axis='columns')
                     # main_df.to_csv(save_location+'{}hey4.csv'.format(findtesttype(listoffiles[0])))
 
-                    saveMPIdata_universal(main_df, save_location)
+                    saveMPIdata_universal(main_df, save_location, stress_type)
                     del main_df  # Garbage Collect main_df to free up memory
-                    pbar.update(1)
                     # except:
                     #     print('something went wrong')
-                pbar.close()
     tqdm.write("Complete")
     sys.stdout.flush()
 
 
 def merge_drift_calc(dict_of_df):
     """
-    Docstring
+    This function takes a dictionary of dataframes (dict_of_df) and iterates over
+    the entries in the dictionary. Each dataframe corresponds to one sheet in the drift_calculation
+    excel file. reshape_df() is used to transform
+    the dataframe into the form read by plotMPIdata() and saveMPIdata_universal().
     """
 
     def reshape_df(label):
         """
-        Docstring
+        reshape_df() transposes the input dataframe while retaining "PART_INDEX" as a column value
         """
         working_df = dict_of_df[label][:-4].drop(columns="PART_INDEX")
         # print(working_df.head(40))
@@ -809,7 +832,7 @@ def folder_drift_save_img():
                 if not os.path.exists(save_location):
                     os.makedirs(save_location)
                 drift_dataframe = merge_drift_calc(dict_of_df)
-                saveMPIdata_universal(drift_dataframe, save_location, drift=True)
+                saveMPIdata_universal(drift_dataframe, save_location, stress_type, drift=True)
 
                 del dict_of_df  # Garbage Collect main_df to free up memory
 
@@ -834,7 +857,6 @@ def destroy_window():
     global top_level
     top_level.destroy()
     top_level = None
-
 
 if __name__ == "__main__":
     import ReliabilityDriftProgram

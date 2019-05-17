@@ -5,6 +5,8 @@
 #  in conjunction with Tcl version 8.6
 #    May 10, 2019 05:46:41 PM +0800  platform: Windows NT
 
+print('Starting GUI...')
+
 import sys
 
 try:
@@ -270,21 +272,26 @@ class Toplevel1:
             """Select drift files to view an interactive plot\nwithout saving them to a database.\n\n选择DRIFT文件以查看交互式绘图而不将其\n保存到数据库。""",
             delay=0.2,
         )
+        
+        try:
+            self.Label1 = tk.Label(top)
+            self.Label1.place(relx=0.333, rely=0.061, height=53, width=176)
+            self.Label1.configure(background="#ffffff")
 
-        self.Label1 = tk.Label(top)
-        self.Label1.place(relx=0.333, rely=0.061, height=53, width=176)
-        self.Label1.configure(background="#ffffff")
-        photo_location = os.path.join(prog_location, "amslogo.png")
-        self._img0 = tk.PhotoImage(file=photo_location)
-        self.Label1.configure(image=self._img0)
-        self.Label1.configure(text="""Label""")
-        tooltip_font = "TkDefaultFont"
-        ToolTip(
-            self.Label1,
-            tooltip_font,
-            """Created by Tampines Quality Department\nEvan Chong, 2019\nQuality Intern""",
-            delay=0.2,
-        )
+            photo_location = os.path.join(prog_location, "amslogo.png")
+            self._img0 = tk.PhotoImage(file=photo_location)
+
+            self.Label1.configure(image=self._img0)
+            self.Label1.configure(text="""Label""")
+            tooltip_font = "TkDefaultFont"
+            ToolTip(
+                self.Label1,
+                tooltip_font,
+                """Created by Tampines Quality Department\nEvan Chong, 2019\nQuality Intern""",
+                delay=0.2,
+            )
+        except:
+            pass
 
         self.menubar = tk.Menu(top, font="TkMenuFont", bg=_bgcolor, fg=_fgcolor)
         top.configure(menu=self.menubar)
