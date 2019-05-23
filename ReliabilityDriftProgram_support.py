@@ -6,7 +6,7 @@
 #   May 10, 2019 05:28:54 PM +0800  platform: Windows NT
 # App Icon made by https://www.freepik.com/ from www.flaticon.com
 
-print('Starting Backend...')
+print("Starting Backend...")
 
 import glob
 import os
@@ -118,12 +118,15 @@ def makemulti(frame, cyclenum):
 # Read cyclenum from filename
 def cycle(filename):
     try:
-        # Searches for HXXXX, CXXXX, XXXXC or XXXXH in the filename where XXXX is the cycle time number
-        m = re.search(r"(\d{1,}).?[CHX]|[CHX].?(\d{1,})", filename, flags=re.IGNORECASE)
-        try:
-            numcycle = int(m.group(1))
-        except:
-            numcycle = int(m.group(2))
+        # Searches for XXXXC or XXXXH in the filename where XXXX is the cycle time number
+        m = re.search(r"(\d{1,})[CHX]", filename, flags=re.IGNORECASE)
+        if m == None:
+            # Adding flexibility for "XXX H"  naming of cycletime
+            m == re.search(r"(\d{1,}) [CHX]", filename, flags=re.IGNORECASE)
+            if m == None:
+                # Addling flexibility for "HXXXX" naming of cycletime
+                m = re.search(r"[CHX](\d{1,})", filename, flags=re.IGNORECASE)
+        numcycle = int(m.group(1))
     except:
         numcycle = 0
     return numcycle
@@ -175,12 +178,39 @@ def serial_number(filename):
         return None
 
 
-# Read Stress Type from filepath
-def find_stress_type(filename):
-    # We use regex search to obtain SN number
-    m = re.search("(HTOL)|(HTSL)|(THB)|(TC)|(TH)", filename, flags=re.IGNORECASE)
-    stress = str(m.group(1))
-    return stress
+def find_stress(folderpath):
+    """
+    Finds stress-named folders present in a given directory and returns a list of matching folders
+    """
+    # Obtain folder names in given directory using Glob and OS
+    list_of_folders = glob.glob(folderpath + "/*")
+    # folder_list = []
+    # for i in list_of_folders:
+    #     folder_list.append(os.path.basename(i))
+
+    folder_list = [os.path.basename(i) for i in list_of_folders]
+
+    stress_keywords = ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference"]
+
+    # # Add folder names that fit our stress types to "stress_list"
+    # stress_list = []
+    # for folder_name in folder_list:
+    #     for stress in stress_keywords:
+    #         if stress in folder_name:
+    #             stress_list.append(folder_name)
+
+    stress_list = [
+        folder_name
+        for folder_name in folder_list
+        for stress in stress_keywords
+        if (
+            stress in folder_name
+            and "!" not in folder_name
+            and ".rtf" not in folder_name
+        )
+    ]
+
+    return stress_list
 
 
 def findtesttype(filename):
@@ -210,14 +240,20 @@ def combinecsv(listoffiles):
         if file == listoffiles[0]:
             main_df = makemulti(universal_load_csv(file), cycle(file))
         elif "retest" in file.lower():
-            tqdm.write('Skipping Retest File: {}'.format(file))
+            # Skip files with retest in the name
+            tqdm.write("Skipping Retest File: {}".format(file))
             continue
         elif "sn" in file.lower():
-            tqdm.write('Skipping Retest File: {}'.format(file))
+            # Skip files with SN in the name
+            tqdm.write("Skipping Retest File: {}".format(file))
             continue
         else:
             new_df = makemulti(universal_load_csv(file), cycle(file))
             main_df = main_df.append(new_df, sort=False)
+        # Convert column PART_INDEX to numbers so that it can be sorted properly
+        main_df[["PART_INDEX"]] = main_df[["PART_INDEX"]].apply(pd.to_numeric)
+        # Sort created dataframe by Hours followed by PART_INDEX
+        main_df = main_df.sort_values(by=["Hours", "PART_INDEX"])
     return main_df
 
 
@@ -298,7 +334,9 @@ def plotMPIdata(test_dataframe, drift=False):
     plotly.offline.plot(fig, validate=False)
 
 
-def saveMPIdata_universal(test_dataframe, save_location, stress, drift=False, flyers=True):
+def saveMPIdata_universal(
+    test_dataframe, save_location, stress, drift=False, flyers=True
+):
     """
     This function plots boxplots with matplotlib and saves them in a specified save_location.
     """
@@ -355,7 +393,7 @@ def saveMPIdata_universal(test_dataframe, save_location, stress, drift=False, fl
                     #         color="tab:blue",  # Value for whiskers will be tableau blue
                     #         fontsize=fontsize,
                     #    )
-                    
+
                     else:
                         ax.text(
                             x_line_center + fontspacing,
@@ -452,21 +490,24 @@ def build_database():
     if folderpath == "":
         return root.update()
 
-    print('Building Database...')
+    print("Building Database...")
 
-    # Obtain folder names in selected directory using Glob and OS
-    list_of_folders = glob.glob(folderpath + '/*')
-    folder_list = []
-    for i in list_of_folders:
-        folder_list.append(os.path.basename(i))
-    
-    # Add folder names that fit our stress types to "stress_list"
-    stress_list = []
-    for folder_name in folder_list:
-        for stress in ["HTOL", "TH", "TC", "HTSL"]:
-            if stress in folder_name:
-                stress_list.append(folder_name)
+    # # Obtain folder names in selected directory using Glob and OS
+    # list_of_folders = glob.glob(folderpath + '/*')
+    # folder_list = []
+    # for i in list_of_folders:
+    #     folder_list.append(os.path.basename(i))
 
+    # # Add folder names that fit our stress types to "stress_list"
+    # stress_list = []
+    # for folder_name in folder_list:
+    #     for stress in ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference"]:
+    #         if stress in folder_name:
+    #             stress_list.append(folder_name)
+
+    stress_list = find_stress(folderpath)
+
+    print("Processing {}".format(stress_list))
     # We create a separate list for each test type + stress type pair as we will save
     for stress_type in stress_list:
         for measurement_type in ("FFT", "LIV", "NFT"):
@@ -492,13 +533,25 @@ def build_database():
                 savepath = folderpath + "/{}/RTO-{}_{}_Database.csv".format(
                     stress_type, rto_num, measurement_type
                 )
+
+                # # Define the location to save the files to
+                # savepath = folderpath + "/{}/Database/RTO-{}_{}_Database.csv".format(
+                #     stress_type, rto_num, measurement_type
+                # )
+
+                # if not os.path.exists(folderpath+'/{}/Database/'.format(stress_type)):
+                #     os.makedirs(folderpath+'/{}/Database/'.format(stress_type))
+
                 try:
                     main_df = combinecsv(list_of_files)
                     main_df.dropna(subset=["PART_INDEX"], inplace=True)
-                    main_df = main_df.sort_values(by='TIMESTAMP')
                     main_df.to_csv(savepath)
-                except:
-                    print("[ERROR]: Please close existing RTO Database files before building database")
+                except PermissionError:
+                    print(
+                        "[ERROR]: Please close existing RTO Database file 'RTO-{}_{}_Database.csv' before building database".format(
+                            rto_num, measurement_type
+                        )
+                    )
 
     print("RTO Database Build Completed")
 
@@ -583,9 +636,13 @@ def generate_drift_statistics(dataframe, savelocation):
                     ],
                     index=["Min", "Max", "Mean", "Std"],
                 )
+
+                abs_drift.sort_index(inplace=True, na_position="last")
+
                 all_abs_drift = abs_drift.append(
                     describe_abs_drift
                 )  # Append Summary Statistics to Absolute Values
+
                 dict_of_abs_drift["{}".format(label)][
                     hour
                 ] = all_abs_drift.values  # Add values to Dataframe in Dictionary
@@ -620,7 +677,7 @@ def drift_calculation():
     if stringoffiles == "":
         return root.update()
 
-    print('Calculating Drift...')
+    print("Calculating Drift...")
 
     listoffiles = root.tk.splitlist(stringoffiles)
     for file in listoffiles:
@@ -698,9 +755,11 @@ def folder_save_img():
     if folderpath == "":
         return root.update()
 
-    
+    stress_list = find_stress(folderpath)
 
-    for stress_type in ("HTOL", "THB", "TH", "TC", "HTSL"):
+    print("Processing {}".format(stress_list))
+
+    for stress_type in stress_list:
         for measurement_type in ("FFT", "LIV", "NFT"):
             # We create a separate list for each test type as we will plot them separately
             # Determine RTO number of the folder
@@ -817,7 +876,11 @@ def folder_drift_save_img():
     if folderpath == "":
         return root.update()
 
-    for stress_type in ("HTOL", "THB", "TH", "TC", "HTSL"):
+    stress_list = find_stress(folderpath)
+
+    print("Processing {}".format(stress_list))
+
+    for stress_type in stress_list:
         for measurement_type in ("FFT", "LIV", "NFT"):
             # We create a separate list for each test type as we will plot them separately
             # Determine RTO number of the folder
@@ -849,7 +912,9 @@ def folder_drift_save_img():
                 if not os.path.exists(save_location):
                     os.makedirs(save_location)
                 drift_dataframe = merge_drift_calc(dict_of_df)
-                saveMPIdata_universal(drift_dataframe, save_location, stress_type, drift=True)
+                saveMPIdata_universal(
+                    drift_dataframe, save_location, stress_type, drift=True
+                )
 
                 del dict_of_df  # Garbage Collect main_df to free up memory
 
@@ -874,6 +939,7 @@ def destroy_window():
     global top_level
     top_level.destroy()
     top_level = None
+
 
 if __name__ == "__main__":
     import ReliabilityDriftProgram

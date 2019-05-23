@@ -71,3 +71,27 @@ Pending Features:
 
 Known Bugs:
 1. AMS logo not included in .exe file
+
+################ 23 May 2019 ################
+Changes:
+1. Reduced flexibility of Stress hours identification due to incorrect cycle time recognition in cases such as "RTO-4212/HAST/..."
+2. Increased flexibility of Stress type identification. (eg. aside from HTOL, HTOL1, HTOL2, HTOLX, HTOL1_ref folders will be recognized as well)
+The stress type is identified by keywords ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference"]. THB is not included as the keyword "TH" matches for THB.
+~3. Database files now save in their own folder~ (Pending)
+4. Added permissionerror handling for when the .csv file to be written to is already open
+
+Pending Features:
+1. Automatic SNX replacement
+2. Automatic rescaling of numbers to avoid numbers protruding from plots
+3. Parallel processing for Database Building
+5. Add additional stress types for future-proofing
+6. Sort RTO database by stress-hours followed by index
+7. Option to select folder or individual files for each button function
+8. Trendlines for plots (from median to median)
+9. Better organization of boxplot folders, perhaps drift boxplots and raw boxplots in separate folders
+10. Additional documentation for program/conversion of program into a package
+11. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
+
+Known Bugs:
+1. AMS logo not included in .exe file (low priority)
+2. Drift Calculation incorrect, possibly due to the sorting of data in the generated RTO database files
