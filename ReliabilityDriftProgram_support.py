@@ -117,17 +117,23 @@ def makemulti(frame, cyclenum):
 
 # Read cyclenum from filename
 def cycle(filename):
-    try:
-        # Searches for XXXXC or XXXXH in the filename where XXXX is the cycle time number
-        m = re.search(r"(\d{1,})[CHX]", filename, flags=re.IGNORECASE)
-        if m == None:
-            # Adding flexibility for "XXX H"  naming of cycletime
-            m == re.search(r"(\d{1,}) [CHX]", filename, flags=re.IGNORECASE)
-            if m == None:
-                # Addling flexibility for "HXXXX" naming of cycletime
-                m = re.search(r"[CHX](\d{1,})", filename, flags=re.IGNORECASE)
+    # Searches for XXXXC, XXXX C or XXXXH in the filename where XXXX is the cycle time number
+    m = re.search(r"(\d{1,}) ?[CHX]", filename, flags=re.IGNORECASE)
+    try:   
         numcycle = int(m.group(1))
-    except:
+    except AttributeError:
+        # if no regex match can be found, m.group(1) will throw an attribute error
+        # We handle this by assuming the file is for cycle time zero
+        if m == None:
+            # Addling flexibility for "HXXXX" naming of cycletime
+            m = re.search(r"[CHX](\d{1,})", filename, flags=re.IGNORECASE)
+            try:
+               numcycle = int(m.group(1))
+            except AttributeError:
+                print('setting numcycle for file {} to 0'.format(filename))
+                numcycle = 0
+    except Exception as e:
+        print('setting numcycle for file {} to 0 due to exception {}'.format(filename,e))
         numcycle = 0
     return numcycle
 
@@ -240,6 +246,10 @@ def combinecsv(listoffiles):
         if file == listoffiles[0]:
             main_df = makemulti(universal_load_csv(file), cycle(file))
         elif "retest" in file.lower():
+            # Skip files with retest in the name
+            tqdm.write("Skipping Retest File: {}".format(file))
+            continue
+        elif "rerun" in file.lower():
             # Skip files with retest in the name
             tqdm.write("Skipping Retest File: {}".format(file))
             continue
@@ -568,6 +578,9 @@ def generate_drift_statistics(dataframe, savelocation):
     """    
     Calculates the following drift statistics: Average Drift, Absolute Average Drift, Maximum Absolute Drift
     and Mininum Absolute Drift.
+
+    Takes a dataframe read from a database.csv file and a save location. 
+    Saves the calculated drift.xlsx in the designated save location
     """
     # Labels for calculation
     dataframe.sort_values(by=["TIMESTAMP"], inplace=True)
@@ -595,75 +608,78 @@ def generate_drift_statistics(dataframe, savelocation):
     with pd.ExcelWriter(savelocation + "RawDrift.xlsx") as rawwriter, pd.ExcelWriter(
         savelocation + "AbsoluteDrift.xlsx"
     ) as abswriter:
-        for label in labels:
-            baseline = dataframe[label][0]
-            dict_of_raw_drift["{}".format(label)] = pd.DataFrame(
-                s, columns=["PART_INDEX"]
-            )
-            dict_of_abs_drift["{}".format(label)] = pd.DataFrame(
-                s, columns=["PART_INDEX"]
-            )
-
-            for hour in hour_range[1:]:
-                # Calculate Raw Drift values
-                curr_value = dataframe[label][hour]
-                raw_drift = ((curr_value - baseline) / baseline) * 100
-                # Calculate Raw Drift Summary statistics
-                describe_raw_drift = pd.Series(
-                    data=[
-                        raw_drift.min(),
-                        raw_drift.max(),
-                        raw_drift.mean(),
-                        raw_drift.std(),
-                    ],
-                    index=["Min", "Max", "Mean", "Std"],
+        try:
+            for label in labels:
+                baseline = dataframe[label][0]
+                dict_of_raw_drift["{}".format(label)] = pd.DataFrame(
+                    s, columns=["PART_INDEX"]
                 )
-                all_raw_drift = raw_drift.append(
-                    describe_raw_drift
-                )  # Append Summary Statistics to Raw Values
-                dict_of_raw_drift["{}".format(label)][
-                    hour
-                ] = all_raw_drift.values  # Add values to Dataframe in Dictionary
-
-                abs_drift = abs(raw_drift)  # Calculate Absolute Drift Values
-                # Calculate Abs Drift Summary Statistics
-                describe_abs_drift = pd.Series(
-                    data=[
-                        abs_drift.min(),
-                        abs_drift.max(),
-                        abs_drift.mean(),
-                        abs_drift.std(),
-                    ],
-                    index=["Min", "Max", "Mean", "Std"],
+                dict_of_abs_drift["{}".format(label)] = pd.DataFrame(
+                    s, columns=["PART_INDEX"]
                 )
 
-                abs_drift.sort_index(inplace=True, na_position="last")
+                for hour in hour_range[1:]:
+                    # Calculate Raw Drift values
+                    curr_value = dataframe[label][hour]
+                    raw_drift = ((curr_value - baseline) / baseline) * 100
+                    # Calculate Raw Drift Summary statistics
+                    describe_raw_drift = pd.Series(
+                        data=[
+                            raw_drift.min(),
+                            raw_drift.max(),
+                            raw_drift.mean(),
+                            raw_drift.std(),
+                        ],
+                        index=["Min", "Max", "Mean", "Std"],
+                    )
+                    all_raw_drift = raw_drift.append(
+                        describe_raw_drift
+                    )  # Append Summary Statistics to Raw Values
+                    dict_of_raw_drift["{}".format(label)][
+                        hour
+                    ] = all_raw_drift.values  # Add values to Dataframe in Dictionary
+                
+                    abs_drift = abs(raw_drift)  # Calculate Absolute Drift Values
+                    # Calculate Abs Drift Summary Statistics
+                    describe_abs_drift = pd.Series(
+                        data=[
+                            abs_drift.min(),
+                            abs_drift.max(),
+                            abs_drift.mean(),
+                            abs_drift.std(),
+                        ],
+                        index=["Min", "Max", "Mean", "Std"],
+                    )
 
-                all_abs_drift = abs_drift.append(
-                    describe_abs_drift
-                )  # Append Summary Statistics to Absolute Values
+                    abs_drift.sort_index(inplace=True, na_position="last")
 
-                dict_of_abs_drift["{}".format(label)][
-                    hour
-                ] = all_abs_drift.values  # Add values to Dataframe in Dictionary
+                    all_abs_drift = abs_drift.append(
+                        describe_abs_drift
+                    )  # Append Summary Statistics to Absolute Values
 
-            # Stack Dataframes in excelwriter objects
-            dict_of_raw_drift["{}".format(label)].to_excel(
-                rawwriter, sheet_name=label[:30], index=False
-            )
-            dict_of_abs_drift["{}".format(label)].to_excel(
-                abswriter, sheet_name=label[:30], index=False
-            )
-        # Save excelwriter objects to Excel Files with each Excel Sheet generated from one Dataframe
-        rawwriter.save()
-        abswriter.save()
+                    dict_of_abs_drift["{}".format(label)][
+                        hour
+                    ] = all_abs_drift.values  # Add values to Dataframe in Dictionary
+
+                # Stack Dataframes in excelwriter objects
+                dict_of_raw_drift["{}".format(label)].to_excel(
+                    rawwriter, sheet_name=label[:30], index=False
+                )
+                dict_of_abs_drift["{}".format(label)].to_excel(
+                    abswriter, sheet_name=label[:30], index=False
+                )
+            # Save excelwriter objects to Excel Files with each Excel Sheet generated from one Dataframe
+            rawwriter.save()
+            abswriter.save()
+        except ValueError:
+            print('More than 30 values detected for {} hours, \nplease check data for {}'.format(hour, savelocation))
     print("Drift Calculation Completed")
 
 
-def drift_calculation():
+def drift_calculation_select():
     """
     Invoked by the 'Compute Drift' button in the GUI.
-    Reads a database .csv file generated using build_database() 
+    Reads database .csv file generated using build_database() 
     for a single Reliability Test Order and calculates drift statistics
     using generate_drift_statistics()
 
@@ -680,6 +696,67 @@ def drift_calculation():
     print("Calculating Drift...")
 
     listoffiles = root.tk.splitlist(stringoffiles)
+    for file in listoffiles:
+        # try:
+        m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
+        rto_num = str(m.group(1))
+        measurement_type = findtesttype(file)
+        savepath = (
+            os.path.dirname(file)
+            + "/Drift Calculation/"
+            + "RTO-{}_{}_".format(rto_num, measurement_type)
+        )
+
+        if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
+            os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
+
+        print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
+
+        main_df = pd.read_csv(file)
+
+        generate_drift_statistics(main_df, savepath)
+
+    # except:
+    #     print('calc failed')
+
+    sys.stdout.flush()
+
+
+def drift_calculation():
+    """
+    Invoked by the 'Compute Drift' button in the GUI.
+    Reads database .csv files generated using build_database() 
+    for a single Reliability Test Order and calculates drift statistics
+    using generate_drift_statistics()
+
+    After calculation, a save prompt is invoked. Saves drift statistics as an excel file.
+    """
+
+    folderpath = askdirectory(
+        parent=root, initialdir="/", title="Please select an RTO folder"
+    )
+
+    # This prevents the program from hanging if the task is cancelled
+    if folderpath == "":
+        return root.update()
+
+    stress_list = find_stress(folderpath)
+
+    print("Processing drift calculation files for {}".format(stress_list))
+    # We create a separate list for each test type + stress type pair as we will save
+
+    # listoffiles = [
+    #     (folderpath + "/{}/**/*{}_Database.csv".format(stress_type, measurement_type))
+    #     for stress_type in stress_list
+    #     for measurement_type in ("FFT", "LIV", "NFT")
+    # ]
+
+    listoffiles = glob.glob(folderpath + "/**/*_Database.csv", recursive=True)
+
+    print(listoffiles)
+
+    print("Calculating Drift...")
+
     for file in listoffiles:
         # try:
         m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)

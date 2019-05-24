@@ -78,7 +78,8 @@ Changes:
 2. Increased flexibility of Stress type identification. (eg. aside from HTOL, HTOL1, HTOL2, HTOLX, HTOL1_ref folders will be recognized as well)
 The stress type is identified by keywords ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference"]. THB is not included as the keyword "TH" matches for THB.
 ~3. Database files now save in their own folder~ (Pending)
-4. Added permissionerror handling for when the .csv file to be written to is already open
+4. Added PermissionError handling for when the .csv file to be written to is already open
+5. Added AttributeError handling for cycle time regex search
 
 Pending Features:
 1. Automatic SNX replacement
