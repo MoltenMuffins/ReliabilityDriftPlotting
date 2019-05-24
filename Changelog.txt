@@ -96,3 +96,26 @@ Pending Features:
 Known Bugs:
 1. AMS logo not included in .exe file (low priority)
 2. Drift Calculation incorrect, possibly due to the sorting of data in the generated RTO database files
+
+################ 24 May 2019 ################
+Changes:
+1. Trendlines between median points on boxplots (slows down plotting however)
+2. Program now excludes files that have "rerun" or "u22" or similar in filenames.
+3. Program now sorts RTO database by stress-hours followed by index
+4. X and Y labels slightly bigger. Image size decreased from 12x8 to 8x6
+5. Automatic resizing of fontspacing of annotations
+
+Pending Features:
+1. Automatic SNX replacement
+2. Automatic rescaling of numbers to avoid numbers protruding from plots
+3. Parallel processing for Database Building
+5. Add additional stress types for future-proofing
+6. Option to select folder or individual files for each button function
+7. Better organization of boxplot folders, perhaps drift boxplots and raw boxplots in separate folders (need to align)
+8. Additional documentation for program/conversion of program into a package
+9. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
+10. Database files now save in their own folder (need to align on this)
+
+Known Bugs:
+1. AMS logo not included in .exe file (low priority)
+2. Drift Calculation incorrect, possibly due to the sorting of data in the generated RTO database files (should be resolved now)

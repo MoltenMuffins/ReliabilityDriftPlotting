@@ -8,6 +8,7 @@
 
 print("Starting Backend...")
 
+import time  # for optimizing, delete before build
 import glob
 import os
 import re
@@ -119,7 +120,7 @@ def makemulti(frame, cyclenum):
 def cycle(filename):
     # Searches for XXXXC, XXXX C or XXXXH in the filename where XXXX is the cycle time number
     m = re.search(r"(\d{1,}) ?[CHX]", filename, flags=re.IGNORECASE)
-    try:   
+    try:
         numcycle = int(m.group(1))
     except AttributeError:
         # if no regex match can be found, m.group(1) will throw an attribute error
@@ -128,12 +129,14 @@ def cycle(filename):
             # Addling flexibility for "HXXXX" naming of cycletime
             m = re.search(r"[CHX](\d{1,})", filename, flags=re.IGNORECASE)
             try:
-               numcycle = int(m.group(1))
+                numcycle = int(m.group(1))
             except AttributeError:
-                print('setting numcycle for file {} to 0'.format(filename))
+                print("setting numcycle for file {} to 0".format(filename))
                 numcycle = 0
     except Exception as e:
-        print('setting numcycle for file {} to 0 due to exception {}'.format(filename,e))
+        print(
+            "setting numcycle for file {} to 0 due to exception {}".format(filename, e)
+        )
         numcycle = 0
     return numcycle
 
@@ -186,7 +189,8 @@ def serial_number(filename):
 
 def find_stress(folderpath):
     """
-    Finds stress-named folders present in a given directory and returns a list of matching folders
+    Finds stress-named folders present such as "HTOL, HTOL1, HTOL_ref, TH, TC, HTSL, ..." 
+    in a given directory and returns them as a list.
     """
     # Obtain folder names in given directory using Glob and OS
     list_of_folders = glob.glob(folderpath + "/*")
@@ -250,11 +254,15 @@ def combinecsv(listoffiles):
             tqdm.write("Skipping Retest File: {}".format(file))
             continue
         elif "rerun" in file.lower():
-            # Skip files with retest in the name
+            # Skip files with rerun in the name
             tqdm.write("Skipping Retest File: {}".format(file))
             continue
         elif "sn" in file.lower():
             # Skip files with SN in the name
+            tqdm.write("Skipping Retest File: {}".format(file))
+            continue
+        elif re.search(r"u\d+", file, flags=re.IGNORECASE) != None:
+            # Skip files that have "u22" or similar in the filename
             tqdm.write("Skipping Retest File: {}".format(file))
             continue
         else:
@@ -263,7 +271,7 @@ def combinecsv(listoffiles):
         # Convert column PART_INDEX to numbers so that it can be sorted properly
         main_df[["PART_INDEX"]] = main_df[["PART_INDEX"]].apply(pd.to_numeric)
         # Sort created dataframe by Hours followed by PART_INDEX
-        main_df = main_df.sort_values(by=["Hours", "PART_INDEX"])
+        main_df = main_df.sort_values(by=["Hours", "PART_INDEX", "TIMESTAMP"])
     return main_df
 
 
@@ -362,9 +370,43 @@ def saveMPIdata_universal(
         tmp = series_object.to_dict().values()
         return [y for y in tmp][0]
 
-    def add_values(bp, ax):
+    def find_values(bp, ax):
+        """
+        find_values() takes a boxplot dictionary as well as plot axes.
+        It returns the coordinates of the median lines as well as the optimal
+        fontspacing for annotations
+        """
+        # We use a list comprehension as well as the .get_xydata() function to
+        # obtain the x and y values for the median lines of the boxplot
+
+        # First we create a list containg an array for each datapoint
+        # The array structure is of the form array((x_l, y), (x_r, _))
+
+        median_data = [line.get_xydata() for line in bp["medians"]]
+
+        # Next we extract the relevant values from median_data
+        # median_y is simply y while median_x has to be calculated via (x_l + (x_r - x_l) / 2)
+        # in order to give us the coordinates of the center of the median line
+        median_y = [i[0][1] for i in median_data]
+        median_x = [(i[0][0] + (i[1][0] - i[0][0]) / 2) for i in median_data]
+
+        # The fontspacing is half the width of a median line + 0.02
+        fontspacing = ((median_data[0][1][0] - median_data[0][0][0]) / 2) + 0.02
+
+        # bins = len(median_x)
+        # if bins >= 5:
+        #     fontspacing = 0.275
+        # elif bins == 4:
+        #     fontspacing = 0.25
+        # elif bins == 3:
+        #     fontspacing = 0.18
+        # else:
+        #     fontspacing = 0.16
+        return median_x, median_y, fontspacing
+
+    def add_values(bp, ax, fontspacing):
         fontsize = 12
-        fontspacing = 0.27  # 0.27
+        # fontspacing = 0.27
 
         """ This actually adds the numbers to the various points of the boxplots"""
         for element in ["medians", "caps"]:
@@ -378,9 +420,9 @@ def saveMPIdata_universal(
                     if y >= 100:
                         numformat = "%.1f"
                     elif y >= 1000:
-                        numformat = "%.0f"
+                        numformat = "%d"
                     else:
-                        numformat = "%.3f"
+                        numformat = "%.2f"
                     # overlay the value:  on the line, from center to right
 
                     if element == "medians":
@@ -433,7 +475,7 @@ def saveMPIdata_universal(
                                 markeredgecolor="tab:orange",
                             )
                             ax.text(
-                                x - 0.3,
+                                x - fontspacing,
                                 y,
                                 numformat % y,
                                 verticalalignment="center",
@@ -449,28 +491,29 @@ def saveMPIdata_universal(
             column=[label],
             by=["Hours"],
             grid=True,
-            figsize=(12, 8),
+            figsize=(8, 6),  # previously 12x8
             ax=axes,
             return_type="dict",
         )
         bp_dict = series_values_as_dict(boxplot)
-        add_values(bp_dict, axes)
+        median_x, median_y, fontspacing = find_values(bp_dict, axes)
+        add_values(bp_dict, axes, fontspacing)
         if drift == False:
             plt.title("Boxplot grouped by Hours under {}".format(stress))
         else:
             plt.title("Boxplot of Drift for {}".format(stress))
+        plt.plot(median_x, median_y)
         plt.suptitle("")
-        plt.xlabel("Hours", fontsize=16)
-        plt.ylabel(label, fontsize=16)
-        plt.xticks(fontsize=12)
-        plt.yticks(fontsize=12)
+        plt.xlabel("Hours", fontsize=18)  # previously 16
+        plt.ylabel(label, fontsize=18)
+        plt.xticks(fontsize=14)  # previously 12
+        plt.yticks(fontsize=14)
         # Save the boxplots in save_location
         if drift == False:
             plt.savefig(save_location + label + "_boxplot.png", transparent=True)
         else:
             plt.savefig(save_location + label + "_Drift_boxplot.png", transparent=True)
         plt.close()
-
 
 # default_open_location = r"\\fstpdata\Team\Quality\Reliability\"
 
@@ -502,23 +545,11 @@ def build_database():
 
     print("Building Database...")
 
-    # # Obtain folder names in selected directory using Glob and OS
-    # list_of_folders = glob.glob(folderpath + '/*')
-    # folder_list = []
-    # for i in list_of_folders:
-    #     folder_list.append(os.path.basename(i))
-
-    # # Add folder names that fit our stress types to "stress_list"
-    # stress_list = []
-    # for folder_name in folder_list:
-    #     for stress in ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference"]:
-    #         if stress in folder_name:
-    #             stress_list.append(folder_name)
-
     stress_list = find_stress(folderpath)
 
     print("Processing {}".format(stress_list))
-    # We create a separate list for each test type + stress type pair as we will save
+    # We create a separate list for each test type + stress type pair
+    # as we will save the databases separately for each of them
     for stress_type in stress_list:
         for measurement_type in ("FFT", "LIV", "NFT"):
             list_of_files = glob.glob(
@@ -544,14 +575,6 @@ def build_database():
                     stress_type, rto_num, measurement_type
                 )
 
-                # # Define the location to save the files to
-                # savepath = folderpath + "/{}/Database/RTO-{}_{}_Database.csv".format(
-                #     stress_type, rto_num, measurement_type
-                # )
-
-                # if not os.path.exists(folderpath+'/{}/Database/'.format(stress_type)):
-                #     os.makedirs(folderpath+'/{}/Database/'.format(stress_type))
-
                 try:
                     main_df = combinecsv(list_of_files)
                     main_df.dropna(subset=["PART_INDEX"], inplace=True)
@@ -576,22 +599,23 @@ def read_database(filepath):
 
 def generate_drift_statistics(dataframe, savelocation):
     """    
-    Calculates the following drift statistics: Average Drift, Absolute Average Drift, Maximum Absolute Drift
-    and Mininum Absolute Drift.
+    Calculates the following drift statistics: Average Drift, Absolute Average Drift, Maximum Absolute Drift,
+    Mininum Absolute Drift, Raw Average Drift, Raw Average Drift, Maximum Raw Drift
+    and Mininum Raw Drift.
 
     Takes a dataframe read from a database.csv file and a save location. 
     Saves the calculated drift.xlsx in the designated save location
     """
+    # Sorting is now done in the database file creation stage but
+    # we stll do it here as a safety check as files might manually amended
+    dataframe.sort_values(by=["Hours", "PART_INDEX", "TIMESTAMP"], inplace=True)
     # Labels for calculation
-    dataframe.sort_values(by=["TIMESTAMP"], inplace=True)
     label_raw = dataframe.columns.values.tolist()
     labels = label_raw[9:]
 
     s = dataframe.PART_INDEX.unique()
     s = np.append(s, ["Min", "Max", "Mean", "Std"])
 
-    #     raw_drift_template = pd.DataFrame(s, columns=['PART_INDEX'])
-    #     abs_drift_template = pd.DataFrame(s, columns=['PART_INDEX'])
     hour_range = dataframe.Hours.unique().tolist()
     cols = ["PART_INDEX"]
     cols.extend(hour_range)
@@ -602,9 +626,7 @@ def generate_drift_statistics(dataframe, savelocation):
     dict_of_raw_drift = {}
     dict_of_abs_drift = {}
 
-    #     hour_range = dataframe.index.get_level_values('Hours').unique().tolist()
-    #     print(hour_range)
-
+    # We save the data to an excelwriter object
     with pd.ExcelWriter(savelocation + "RawDrift.xlsx") as rawwriter, pd.ExcelWriter(
         savelocation + "AbsoluteDrift.xlsx"
     ) as abswriter:
@@ -638,7 +660,7 @@ def generate_drift_statistics(dataframe, savelocation):
                     dict_of_raw_drift["{}".format(label)][
                         hour
                     ] = all_raw_drift.values  # Add values to Dataframe in Dictionary
-                
+
                     abs_drift = abs(raw_drift)  # Calculate Absolute Drift Values
                     # Calculate Abs Drift Summary Statistics
                     describe_abs_drift = pd.Series(
@@ -651,11 +673,11 @@ def generate_drift_statistics(dataframe, savelocation):
                         index=["Min", "Max", "Mean", "Std"],
                     )
 
-                    abs_drift.sort_index(inplace=True, na_position="last")
+                    # abs_drift.sort_index(inplace=True, na_position="last")
 
                     all_abs_drift = abs_drift.append(
                         describe_abs_drift
-                    )  # Append Summary Statistics to Absolute Values
+                    )  # Append Summary Statistics to dataframe of Absolute Values
 
                     dict_of_abs_drift["{}".format(label)][
                         hour
@@ -672,8 +694,11 @@ def generate_drift_statistics(dataframe, savelocation):
             rawwriter.save()
             abswriter.save()
         except ValueError:
-            print('More than 30 values detected for {} hours, \nplease check data for {}'.format(hour, savelocation))
-    print("Drift Calculation Completed")
+            print(
+                "More than 30 values detected for {} hours, \nplease check data for {}".format(
+                    hour, savelocation
+                )
+            )
 
 
 def drift_calculation_select():
@@ -715,7 +740,7 @@ def drift_calculation_select():
         main_df = pd.read_csv(file)
 
         generate_drift_statistics(main_df, savepath)
-
+        print("Drift Calculations Saved")
     # except:
     #     print('calc failed')
 
@@ -944,7 +969,12 @@ def drift_plot_interactive():
 
 
 def folder_drift_save_img():
-
+    """
+    Reads data from DriftCalculation.xlsx files in the selected directory.
+    Iterates through each sheet in the .xlsx file (corresponding to each test parameter), 
+    followed by using saveMPIdata_universal() to plot boxplots for the sheet data.
+    Saves images in a '[Test_Type]_Drift_Boxplot' folder
+    """
     folderpath = askdirectory(
         parent=root, initialdir="/", title="Please select a RTO folder"
     )
