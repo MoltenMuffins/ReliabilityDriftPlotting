@@ -6,9 +6,8 @@
 #   May 10, 2019 05:28:54 PM +0800  platform: Windows NT
 # App Icon made by https://www.freepik.com/ from www.flaticon.com
 
-print("Starting Backend...")
-
 import time  # for optimizing, delete before build
+import multiprocessing
 import glob
 import os
 import re
@@ -621,7 +620,7 @@ def generate_drift_statistics(dataframe, savelocation):
     hour_range = dataframe.Hours.unique().tolist()
     cols = ["PART_INDEX"]
     cols.extend(hour_range)
-    print("Cycles Detected: ", cols[1:])
+    # print("Cycles Detected: ", cols[1:])
     dataframe.set_index(["Hours", "PART_INDEX"], inplace=True)
 
     # We save the data to an excelwriter object
@@ -736,7 +735,7 @@ def drift_calculation_select():
         print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
 
         main_df = pd.read_csv(file)
-
+        
         generate_drift_statistics(main_df, savepath)
         print("Drift Calculations Saved")
      
@@ -745,6 +744,24 @@ def drift_calculation_select():
 
     sys.stdout.flush()
 
+def call_generate_drift_statistics(file):
+        m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
+        rto_num = str(m.group(1))
+        measurement_type = findtesttype(file)
+        savepath = (
+            os.path.dirname(file)
+            + "/Drift Calculation/"
+            + "RTO-{}_{}_".format(rto_num, measurement_type)
+        )
+
+        if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
+            os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
+
+        # print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
+
+        main_df = pd.read_csv(file)
+
+        generate_drift_statistics(main_df, savepath)
 
 def drift_calculation():
     """
@@ -769,38 +786,21 @@ def drift_calculation():
     print("Processing drift calculation files for {}".format(stress_list))
     # We create a separate list for each test type + stress type pair as we will save
 
-    # listoffiles = [
-    #     (folderpath + "/{}/**/*{}_Database.csv".format(stress_type, measurement_type))
-    #     for stress_type in stress_list
-    #     for measurement_type in ("FFT", "LIV", "NFT")
-    # ]
     start = time.time()
 
     listoffiles = glob.glob(folderpath + "/**/*_Database.csv", recursive=True)
 
-    print(listoffiles)
+    jobs = []
 
     print("Calculating Drift...")
 
     for file in listoffiles:
-        # try:
-        m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
-        rto_num = str(m.group(1))
-        measurement_type = findtesttype(file)
-        savepath = (
-            os.path.dirname(file)
-            + "/Drift Calculation/"
-            + "RTO-{}_{}_".format(rto_num, measurement_type)
-        )
+        # # try:
+        # p = multiprocessing.Process(target=call_generate_drift_statistics, args=(file,))
+        # jobs.append(p)
+        # p.start()
 
-        if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
-            os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
-
-        print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
-
-        main_df = pd.read_csv(file)
-
-        generate_drift_statistics(main_df, savepath)
+        call_generate_drift_statistics(file)
 
     end = time.time()
     print('Took {}'.format(end-start))  

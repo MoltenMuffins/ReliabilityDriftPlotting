@@ -124,6 +124,7 @@ Known Bugs:
 Changes:
 1. Ignore zero values for raw data plots as they are likely outliers
 2. Add additional stress types for future-proofing.
+3. Added multiprocessing for drift_calculation (30s > 0.37s)
 
 Pending Features:
 1. Automatic SNX replacement (take last value of retest dataframe)
