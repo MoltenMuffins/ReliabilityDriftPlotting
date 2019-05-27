@@ -615,6 +615,7 @@ def generate_drift_statistics(dataframe, savelocation):
 
     s = dataframe.PART_INDEX.unique()
     s = np.append(s, ["Min", "Max", "Mean", "Std"])
+    s_df = pd.DataFrame(s, columns=["PART_INDEX"])
 
     hour_range = dataframe.Hours.unique().tolist()
     cols = ["PART_INDEX"]
@@ -622,28 +623,22 @@ def generate_drift_statistics(dataframe, savelocation):
     print("Cycles Detected: ", cols[1:])
     dataframe.set_index(["Hours", "PART_INDEX"], inplace=True)
 
-    # Create empty dictionaries to house Dataframes for Raw Drift and Absolute Drift
-    dict_of_raw_drift = {}
-    dict_of_abs_drift = {}
-
     # We save the data to an excelwriter object
     with pd.ExcelWriter(savelocation + "RawDrift.xlsx") as rawwriter, pd.ExcelWriter(
         savelocation + "AbsoluteDrift.xlsx"
     ) as abswriter:
-        try:
+        try:      
+            dict_of_raw_drift = {label : s_df.copy() for label in labels}
+            dict_of_abs_drift = dict_of_raw_drift.copy()
+ 
             for label in labels:
                 baseline = dataframe[label][0]
-                dict_of_raw_drift["{}".format(label)] = pd.DataFrame(
-                    s, columns=["PART_INDEX"]
-                )
-                dict_of_abs_drift["{}".format(label)] = pd.DataFrame(
-                    s, columns=["PART_INDEX"]
-                )
 
                 for hour in hour_range[1:]:
                     # Calculate Raw Drift values
                     curr_value = dataframe[label][hour]
                     raw_drift = ((curr_value - baseline) / baseline) * 100
+
                     # Calculate Raw Drift Summary statistics
                     describe_raw_drift = pd.Series(
                         data=[
@@ -699,6 +694,7 @@ def generate_drift_statistics(dataframe, savelocation):
                     hour, savelocation
                 )
             )
+     
 
 
 def drift_calculation_select():
@@ -721,6 +717,7 @@ def drift_calculation_select():
     print("Calculating Drift...")
 
     listoffiles = root.tk.splitlist(stringoffiles)
+
     for file in listoffiles:
         # try:
         m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
@@ -741,6 +738,7 @@ def drift_calculation_select():
 
         generate_drift_statistics(main_df, savepath)
         print("Drift Calculations Saved")
+     
     # except:
     #     print('calc failed')
 
@@ -775,6 +773,7 @@ def drift_calculation():
     #     for stress_type in stress_list
     #     for measurement_type in ("FFT", "LIV", "NFT")
     # ]
+    start = time.time()
 
     listoffiles = glob.glob(folderpath + "/**/*_Database.csv", recursive=True)
 
@@ -802,6 +801,8 @@ def drift_calculation():
 
         generate_drift_statistics(main_df, savepath)
 
+    end = time.time()
+    print('Took {}'.format(end-start))  
     # except:
     #     print('calc failed')
 
