@@ -120,29 +120,28 @@ Known Bugs:
 1. AMS logo not included in .exe file (low priority)
 2. Drift Calculation incorrect, possibly due to the sorting of data in the generated RTO database files (should be resolved now)
 
-################ Futures ################
-
+################ 27 May 2019 ################
+Changes:
+1. Ignore zero values for raw data plots as they are likely outliers
+2. Add additional stress types for future-proofing.
 
 Pending Features:
 1. Automatic SNX replacement (take last value of retest dataframe)
-2. Automatic rescaling of numbers to avoid numbers protruding from plots
-3. Parallel processing for Database Building
-5. Add additional stress types for future-proofing
-6. Option to select folder or individual files for each button function
+2. Parallel processing for Database Building
+3. Option to select folder or individual files for each button function
 7. Better organization of boxplot folders, perhaps drift boxplots and raw boxplots in separate folders (need to align)
 8. Additional documentation for program/conversion of program into a package
 9. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
 10. Database files now save in their own folder (need to align on this)
 11. Titles on plot remove stress name, change title to "Drift plot for (parameter name)"
-12. Ignore zero values
-13. 10% Drift limit (highlight where to change for Jefferson)
-14. Extend Stress Types to include AAA, BBB, CCC as placeholders for future tests
-15. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
-16. Plot reference with stress
-17. Put plots in folder for Raw and Absolute Drift. Inside folder will be all the plots, 
+12. 10% Drift limit (highlight where to change for Jefferson)
+13. Extend Stress Types to include AAA, BBB, CCC as placeholders for future tests
+14. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
+15. Plot reference with stress
+16. Put plots in folder for Raw and Absolute Drift. Inside folder will be all the plots, 
 except for a folder called "needed plots" which contain the plots of interest
+17. Program status updates while in operation
 
 
 Known Bugs:
 1. AMS logo not included in .exe file (low priority)
-2. Drift Calculation incorrect, possibly due to the sorting of data in the generated RTO database files (should be resolved now)

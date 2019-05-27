@@ -200,7 +200,7 @@ def find_stress(folderpath):
 
     folder_list = [os.path.basename(i) for i in list_of_folders]
 
-    stress_keywords = ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference"]
+    stress_keywords = ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference", "AAA", "BBB", "CCC", "DDD"]
 
     # # Add folder names that fit our stress types to "stress_list"
     # stress_list = []
@@ -363,6 +363,7 @@ def saveMPIdata_universal(
     label_raw = test_dataframe.columns.values.tolist()
     if drift == False:
         testlabels = label_raw[9:]
+        test_dataframe.iloc[1:, 1:].replace(0, np.nan, inplace=True)
     else:
         testlabels = label_raw[1:]
 
