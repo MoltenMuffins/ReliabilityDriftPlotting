@@ -8,6 +8,7 @@
 
 import time  # for optimizing, delete before build
 import multiprocessing
+from multiprocessing import Pool
 import glob
 import os
 import re
@@ -790,20 +791,20 @@ def drift_calculation():
 
     listoffiles = glob.glob(folderpath + "/**/*_Database.csv", recursive=True)
 
+    # Create list of jobs to multiprocess
     jobs = []
 
     print("Calculating Drift...")
 
     for file in listoffiles:
-        # # try:
-        # p = multiprocessing.Process(target=call_generate_drift_statistics, args=(file,))
-        # jobs.append(p)
-        # p.start()
-
-        call_generate_drift_statistics(file)
+        # Create jobs and add them to the list of jobs
+        # call_generate_drift_statistics has to be a global function
+        p = multiprocessing.Process(target=call_generate_drift_statistics, args=(file,))
+        jobs.append(p)
+        p.start()
 
     end = time.time()
-    print('Took {}'.format(end-start))  
+    print('Took {} seconds'.format(end-start))  
     # except:
     #     print('calc failed')
 
@@ -836,6 +837,37 @@ def file_plot_interactive():
 
     sys.stdout.flush()
 
+def call_generate_raw_img(folderpath, stress_type, measurement_type):
+    database_files = glob.glob(
+        folderpath
+        + "/{}/*_{}_Database.csv".format(stress_type, measurement_type),
+        recursive=True,
+    )
+
+    listlen = len(database_files)
+
+    if listlen == 0:
+        tqdm.write(
+            "Stress: {} and Test: {} not found".format(
+                stress_type, measurement_type
+            )
+        )
+        pass
+    
+    else:
+        # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
+        for file in database_files:
+
+            main_df = pd.read_csv(file)
+
+            save_location = folderpath + "/{}/{}_boxplot/".format(
+                stress_type, measurement_type
+            )
+            if not os.path.exists(save_location):
+                os.makedirs(save_location)
+            saveMPIdata_universal(main_df, save_location, stress_type)
+            del main_df  # Garbage Collect main_df to free up memory
+
 
 def folder_save_img():
     """
@@ -855,6 +887,7 @@ def folder_save_img():
         parent=root, initialdir="/", title="Please select a folder_name"
     )
 
+    start = time.time()
     # This prevents the program from hanging if the task is cancelled
     if folderpath == "":
         return root.update()
@@ -863,49 +896,25 @@ def folder_save_img():
 
     print("Processing {}".format(stress_list))
 
-    for stress_type in stress_list:
-        for measurement_type in ("FFT", "LIV", "NFT"):
-            # We create a separate list for each test type as we will plot them separately
-            # Determine RTO number of the folder
-            database_files = glob.glob(
-                folderpath
-                + "/{}/*_{}_Database.csv".format(stress_type, measurement_type),
-                recursive=True,
-            )
+    jobs = []
 
-            listlen = len(database_files)
+    stress_test_pair = [[stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")]
 
-            if listlen == 0:
-                tqdm.write(
-                    "Stress: {} and Test: {} not found".format(
-                        stress_type, measurement_type
-                    )
-                )
-                pass
+    # for pair in stress_test_pair:
+    #     stress_type = pair[0]
+    #     measurement_type = pair[1]
+    #     p = multiprocessing.Process(target=call_generate_raw_img, args=(folderpath, stress_type, measurement_type))
+    #     jobs.append(p)
+    #     p.start()
+    # stress_chunk = [pair[0] for pair in stress_test_pair]
+    # test_chunk = [pair[1] for pair in stress_test_pair]
+    
+    pool = Pool(os.cpu_count())
+    result = [pool.apply(call_generate_raw_img, args=(folderpath,pair[0],pair[1])) for pair in stress_test_pair]
 
-            else:
-                # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
-                for file in database_files:
-                    # try:
-                    # main_df = combinecsv(listoffiles)
-                    # plotMPIdata(read_test_type, main_df)
-                    main_df = pd.read_csv(file)
-                    # print(main_df.head())
-
-                    save_location = folderpath + "/{}/{}_boxplot/".format(
-                        stress_type, measurement_type
-                    )
-                    if not os.path.exists(save_location):
-                        os.makedirs(save_location)
-
-                    # main_df = main_df.dropna(axis='columns')
-                    # main_df.to_csv(save_location+'{}hey4.csv'.format(findtesttype(listoffiles[0])))
-
-                    saveMPIdata_universal(main_df, save_location, stress_type)
-                    del main_df  # Garbage Collect main_df to free up memory
-                    # except:
-                    #     print('something went wrong')
     tqdm.write("Complete")
+    end = time.time()
+    print('Took {} seconds'.format(end-start))
     sys.stdout.flush()
 
 
