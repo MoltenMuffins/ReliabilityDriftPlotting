@@ -126,5 +126,6 @@ dmypy.json
 
 error.txt
 .vscode/
+.code-workspace
 __pycache__/ReliabilityDriftProgram.cpython-36.pyc
 __pycache__/ReliabilityDriftProgram_support.cpython-36.pyc
