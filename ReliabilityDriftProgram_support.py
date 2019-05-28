@@ -43,7 +43,7 @@ except ImportError:
 
 def universal_load_csv(filepath):
     """
-    This function reads .csv files for any test type.
+    This function reads .csv files for test types NFT, FFT and LIV.
     """
     with open(filepath) as f, TemporaryFile("w+") as t:
         # Clean the text file so that it can be parsed by the pandas .read_csv method
@@ -104,7 +104,6 @@ def universal_load_csv(filepath):
                 df_new["TIMESTAMP"], format="%d.%m.%Y %H:%M:%S"
             )
         df_new.iloc[:, 8:] = df_new.iloc[:, 8:].astype(float)
-
         return df_new
 
 
@@ -212,13 +211,6 @@ def find_stress(folderpath):
         "DDD",
     ]
 
-    # # Add folder names that fit our stress types to "stress_list"
-    # stress_list = []
-    # for folder_name in folder_list:
-    #     for stress in stress_keywords:
-    #         if stress in folder_name:
-    #             stress_list.append(folder_name)
-
     stress_list = [
         folder_name
         for folder_name in folder_list
@@ -233,7 +225,7 @@ def find_stress(folderpath):
     return stress_list
 
 
-def findtesttype(filename):
+def find_test_type(filename):
     """
     This function tries to find the test type of the file by looking through the filename for 'FFT', 'NFT' or 'LIV'. 
     Case is ignored in this search (ie. uppercase vs lowercase). 
@@ -526,10 +518,6 @@ def saveMPIdata_universal(
             plt.savefig(save_location + label + "_Drift_boxplot.png", transparent=True)
         plt.close()
 
-
-# default_open_location = r"\\fstpdata\Team\Quality\Reliability\"
-
-
 def build_database():
     """
     Invoked by the 'Compile Files to Database' button in the GUI.
@@ -739,7 +727,7 @@ def drift_calculation_select():
         # try:
         m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
         rto_num = str(m.group(1))
-        measurement_type = findtesttype(file)
+        measurement_type = find_test_type(file)
         savepath = (
             os.path.dirname(file)
             + "/Drift Calculation/"
@@ -765,7 +753,7 @@ def drift_calculation_select():
 def call_generate_drift_statistics(file):
     m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
     rto_num = str(m.group(1))
-    measurement_type = findtesttype(file)
+    measurement_type = find_test_type(file)
     savepath = (
         os.path.dirname(file)
         + "/Drift Calculation/"
@@ -874,9 +862,7 @@ def call_generate_raw_img(folderpath, stress_type, measurement_type):
     else:
         # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
         for file in database_files:
-
             main_df = pd.read_csv(file)
-
             save_location = folderpath + "/{}/{}_boxplot/".format(
                 stress_type, measurement_type
             )

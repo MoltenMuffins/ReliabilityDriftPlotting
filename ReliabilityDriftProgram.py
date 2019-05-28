@@ -149,7 +149,7 @@ class Toplevel1:
         ToolTip(
             self.build_database_button,
             tooltip_font,
-            """Click to select files belonging to a single RTO\nto add them to a database for that RTO.\n\n通过选择RTO文件夹将文件编译到数据库.""",
+            """Click to select an RTO folder\nto build a database for that RTO.\n\n通过选择RTO文件夹将文件编译到数据库.""",
             delay=0.2,
         )
 
@@ -278,7 +278,7 @@ class Toplevel1:
             self.Label1.place(relx=0.333, rely=0.061, height=53, width=176)
             self.Label1.configure(background="#ffffff")
 
-            photo_location = os.path.join(prog_location, "amslogo.png")
+            photo_location = os.path.join(prog_location, "misc/amslogo.png")
             self._img0 = tk.PhotoImage(file=photo_location)
 
             self.Label1.configure(image=self._img0)

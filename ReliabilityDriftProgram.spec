@@ -5,7 +5,7 @@ block_cipher = None
 
 a = Analysis(['ReliabilityDriftProgram.py'],
              pathex=[
-                    'C:\\Users\\econ\\Documents\\Python\\ReliabilityDrift',
+                    'C:/Users/econ/Documents/Python/ReliabilityDrift',
                     'C:/Users/econ/AppData/Local/Continuum/anaconda3/pkgs/plotly-3.7.0-py_0/site-packages/plotly/offline'
                     ],
              binaries=[],
@@ -37,4 +37,4 @@ exe = EXE(pyz,
           upx=True,
           runtime_tmpdir=None,
           console=True,
-          icon='C:/Users/econ/Documents/Python/ReliabilityDrift/ReliabilityDriftIcon.ico')
+          icon='C:/Users/econ/Documents/Python/ReliabilityDrift/misc/ReliabilityDriftIcon.ico')

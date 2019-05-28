@@ -120,7 +120,7 @@ Known Bugs:
 1. AMS logo not included in .exe file (low priority)
 2. Drift Calculation incorrect, possibly due to the sorting of data in the generated RTO database files (should be resolved now)
 
-################ 27 May 2019 ################
+################ 28 May 2019 ################
 Changes:
 1. Ignore zero values for raw data plots as they are likely outliers
 2. Add additional stress types for future-proofing.
@@ -128,19 +128,20 @@ Changes:
 
 Pending Features:
 1. Automatic SNX replacement (take last value of retest dataframe)
-3. Option to select folder or individual files for each button function
-7. Better organization of boxplot folders, perhaps drift boxplots and raw boxplots in separate folders (need to align)
-8. Additional documentation for program/conversion of program into a package
-9. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
-10. Database files now save in their own folder (need to align on this)
-11. Titles on plot remove stress name, change title to "Drift plot for (parameter name)"
-12. 10% Drift limit (highlight where to change for Jefferson)
-13. Extend Stress Types to include AAA, BBB, CCC as placeholders for future tests
-14. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
-15. Plot reference with stress
-16. Put plots in folder for Raw and Absolute Drift. Inside folder will be all the plots, 
+2. Option to select folder or individual files for each button function
+3. Better organization of boxplot folders, perhaps drift boxplots and raw boxplots in separate folders (need to align)
+4. Additional documentation for program/conversion of program into a package
+5. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
+6. Database files now save in their own folder (need to align on this)
+7. Titles on plot remove stress name, change title to "Drift plot for (parameter name)"
+8. 10% Drift limit (highlight where to change for Jefferson)
+9. Extend Stress Types to include AAA, BBB, CCC as placeholders for future tests
+10. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
+11. Plot reference with stress
+12. Put plots in folder for Raw and Absolute Drift. Inside folder will be all the plots, 
 except for a folder called "needed plots" which contain the plots of interest
-17. Program status updates while in operation
+13. Program status updates while in operation
+14. Highlight areas where jefferson can change code/add info
 
 
 Known Bugs:
