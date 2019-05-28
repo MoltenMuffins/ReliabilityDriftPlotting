@@ -124,10 +124,10 @@ Known Bugs:
 Changes:
 1. Ignore zero values for raw data plots as they are likely outliers
 2. Add additional stress types for future-proofing.
+3. Added multiprocessing for calculation and plot methods (~x3 Speed Increase)
 
 Pending Features:
 1. Automatic SNX replacement (take last value of retest dataframe)
-2. Parallel processing for Database Building
 3. Option to select folder or individual files for each button function
 7. Better organization of boxplot folders, perhaps drift boxplots and raw boxplots in separate folders (need to align)
 8. Additional documentation for program/conversion of program into a package
