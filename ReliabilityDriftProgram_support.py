@@ -859,6 +859,7 @@ def folder_save_img():
     if folderpath == "":
         return root.update()
 
+    start = time.time()
     stress_list = find_stress(folderpath)
 
     print("Processing {}".format(stress_list))
@@ -905,6 +906,8 @@ def folder_save_img():
                     del main_df  # Garbage Collect main_df to free up memory
                     # except:
                     #     print('something went wrong')
+    end = time.time()
+    print('Time taken is {} seconds'.format(end-start))
     tqdm.write("Complete")
     sys.stdout.flush()
 
