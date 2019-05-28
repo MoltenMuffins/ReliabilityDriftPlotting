@@ -199,7 +199,18 @@ def find_stress(folderpath):
 
     folder_list = [os.path.basename(i) for i in list_of_folders]
 
-    stress_keywords = ["HTOL", "TH", "TC", "HTSL", "HAST", "Reference", "AAA", "BBB", "CCC", "DDD"]
+    stress_keywords = [
+        "HTOL",
+        "TH",
+        "TC",
+        "HTSL",
+        "HAST",
+        "Reference",
+        "AAA",
+        "BBB",
+        "CCC",
+        "DDD",
+    ]
 
     # # Add folder names that fit our stress types to "stress_list"
     # stress_list = []
@@ -515,6 +526,7 @@ def saveMPIdata_universal(
             plt.savefig(save_location + label + "_Drift_boxplot.png", transparent=True)
         plt.close()
 
+
 # default_open_location = r"\\fstpdata\Team\Quality\Reliability\"
 
 
@@ -549,11 +561,15 @@ def build_database():
 
     print("Processing {}".format(stress_list))
 
-    stress_test_pair = [[stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")]
+    stress_test_pair = [
+        [stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")
+    ]
     processes = []
-    
+
     for pair in stress_test_pair:
-        p = multiprocessing.Process(target=call_build_database, args=(folderpath, pair[0], pair[1],))
+        p = multiprocessing.Process(
+            target=call_build_database, args=(folderpath, pair[0], pair[1])
+        )
         processes.append(p)
         p.start()
 
@@ -562,12 +578,13 @@ def build_database():
 
     print("RTO Database Build Completed")
 
+
 def call_build_database(folderpath, stress_type, measurement_type):
     list_of_files = glob.glob(
-            folderpath + "/{}/**/*{}.csv".format(stress_type, measurement_type),
-            recursive=True,
-        )
-        # Determine RTO number of the folder
+        folderpath + "/{}/**/*{}.csv".format(stress_type, measurement_type),
+        recursive=True,
+    )
+    # Determine RTO number of the folder
 
     if len(list_of_files) == 0:
         print(
@@ -596,6 +613,7 @@ def call_build_database(folderpath, stress_type, measurement_type):
                     rto_num, measurement_type
                 )
             )
+
 
 def generate_drift_statistics(dataframe, savelocation):
     """    
@@ -627,10 +645,10 @@ def generate_drift_statistics(dataframe, savelocation):
     with pd.ExcelWriter(savelocation + "RawDrift.xlsx") as rawwriter, pd.ExcelWriter(
         savelocation + "AbsoluteDrift.xlsx"
     ) as abswriter:
-        try:      
-            dict_of_raw_drift = {label : s_df.copy() for label in labels}
+        try:
+            dict_of_raw_drift = {label: s_df.copy() for label in labels}
             dict_of_abs_drift = dict_of_raw_drift.copy()
- 
+
             for label in labels:
                 baseline = dataframe[label][0]
 
@@ -694,7 +712,6 @@ def generate_drift_statistics(dataframe, savelocation):
                     hour, savelocation
                 )
             )
-     
 
 
 def drift_calculation_select():
@@ -735,33 +752,35 @@ def drift_calculation_select():
         print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
 
         main_df = pd.read_csv(file)
-        
+
         generate_drift_statistics(main_df, savepath)
         print("Drift Calculations Saved")
-     
+
     # except:
     #     print('calc failed')
 
     sys.stdout.flush()
 
+
 def call_generate_drift_statistics(file):
-        m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
-        rto_num = str(m.group(1))
-        measurement_type = findtesttype(file)
-        savepath = (
-            os.path.dirname(file)
-            + "/Drift Calculation/"
-            + "RTO-{}_{}_".format(rto_num, measurement_type)
-        )
+    m = re.search(r"RTO.(\d{1,})", file, flags=re.IGNORECASE)
+    rto_num = str(m.group(1))
+    measurement_type = findtesttype(file)
+    savepath = (
+        os.path.dirname(file)
+        + "/Drift Calculation/"
+        + "RTO-{}_{}_".format(rto_num, measurement_type)
+    )
 
-        if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
-            os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
+    if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
+        os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
 
-        # print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
+    # print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
 
-        main_df = pd.read_csv(file)
+    main_df = pd.read_csv(file)
 
-        generate_drift_statistics(main_df, savepath)
+    generate_drift_statistics(main_df, savepath)
+
 
 def drift_calculation():
     """
@@ -799,12 +818,12 @@ def drift_calculation():
         p = multiprocessing.Process(target=call_generate_drift_statistics, args=(file,))
         processes.append(p)
         p.start()
-    
+
     for process in processes:
         process.join()
 
     end = time.time()
-    print('Took {} seconds'.format(end-start))  
+    print("Took {} seconds".format(end - start))
     # except:
     #     print('calc failed')
 
@@ -837,10 +856,10 @@ def file_plot_interactive():
 
     sys.stdout.flush()
 
+
 def call_generate_raw_img(folderpath, stress_type, measurement_type):
     database_files = glob.glob(
-        folderpath
-        + "/{}/*_{}_Database.csv".format(stress_type, measurement_type),
+        folderpath + "/{}/*_{}_Database.csv".format(stress_type, measurement_type),
         recursive=True,
     )
 
@@ -848,12 +867,10 @@ def call_generate_raw_img(folderpath, stress_type, measurement_type):
 
     if listlen == 0:
         tqdm.write(
-            "Stress: {} and Test: {} not found".format(
-                stress_type, measurement_type
-            )
+            "Stress: {} and Test: {} not found".format(stress_type, measurement_type)
         )
         pass
-    
+
     else:
         # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
         for file in database_files:
@@ -894,14 +911,20 @@ def folder_save_img():
 
     stress_list = find_stress(folderpath)
 
-    print("Starting Raw Data Batch Plotting.\nProcessing data for {}".format(stress_list))
+    print(
+        "Starting Raw Data Batch Plotting.\nProcessing data for {}".format(stress_list)
+    )
 
     processes = []
 
-    stress_test_pair = [[stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")]
+    stress_test_pair = [
+        [stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")
+    ]
 
     for pair in stress_test_pair:
-        p = multiprocessing.Process(target=call_generate_raw_img, args=(folderpath, pair[0], pair[1],))
+        p = multiprocessing.Process(
+            target=call_generate_raw_img, args=(folderpath, pair[0], pair[1])
+        )
         processes.append(p)
         p.start()
 
@@ -910,7 +933,7 @@ def folder_save_img():
 
     tqdm.write("Complete")
     end = time.time()
-    print('Took {} seconds'.format(end-start))
+    print("Took {} seconds".format(end - start))
     sys.stdout.flush()
 
 
@@ -993,14 +1016,22 @@ def folder_drift_save_img():
 
     stress_list = find_stress(folderpath)
 
-    print("Starting Drift Data Batch Plotting.\nProcessing data for {}".format(stress_list))
-    
-    stress_test_pair = [[stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")]
+    print(
+        "Starting Drift Data Batch Plotting.\nProcessing data for {}".format(
+            stress_list
+        )
+    )
+
+    stress_test_pair = [
+        [stress, test] for stress in stress_list for test in ("FFT", "LIV", "NFT")
+    ]
 
     processes = []
 
     for pair in stress_test_pair:
-        p = multiprocessing.Process(target=call_generate_raw_img, args=(folderpath, pair[0], pair[1],))
+        p = multiprocessing.Process(
+            target=call_generate_raw_img, args=(folderpath, pair[0], pair[1])
+        )
         processes.append(p)
         p.start()
 
@@ -1008,17 +1039,18 @@ def folder_drift_save_img():
         process.join()
 
     end = time.time()
-    print('Drift Plotting Complete.\nTook {} seconds'.format(end-start)) 
+    print("Drift Plotting Complete.\nTook {} seconds".format(end - start))
     sys.stdout.flush()
 
-def call_drift_plot(folderpath, stress_type, measurement_type   ):
+
+def call_drift_plot(folderpath, stress_type, measurement_type):
     database_files = glob.glob(
-                folderpath
-                + "/{}/Drift Calculation/*_{}_AbsoluteDrift.xlsx".format(
-                    stress_type, measurement_type
-                ),
-                recursive=True,
-            )
+        folderpath
+        + "/{}/Drift Calculation/*_{}_AbsoluteDrift.xlsx".format(
+            stress_type, measurement_type
+        ),
+        recursive=True,
+    )
 
     listlen = len(database_files)
 
@@ -1040,9 +1072,7 @@ def call_drift_plot(folderpath, stress_type, measurement_type   ):
         if not os.path.exists(save_location):
             os.makedirs(save_location)
         drift_dataframe = merge_drift_calc(dict_of_df)
-        saveMPIdata_universal(
-            drift_dataframe, save_location, stress_type, drift=True
-        )
+        saveMPIdata_universal(drift_dataframe, save_location, stress_type, drift=True)
 
         del dict_of_df  # Garbage Collect main_df to free up memory
 
@@ -1068,4 +1098,5 @@ def destroy_window():
 
 if __name__ == "__main__":
     import ReliabilityDriftProgram
+
     ReliabilityDriftProgram.vp_start_gui()
