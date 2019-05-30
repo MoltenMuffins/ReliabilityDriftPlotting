@@ -26,7 +26,6 @@ except ImportError:
 import ReliabilityDriftProgram_support
 import os.path
 
-
 def vp_start_gui():
     """Starting point when module is the main routine."""
     global w, root

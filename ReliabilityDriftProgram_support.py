@@ -41,6 +41,16 @@ except ImportError:
     py3 = True
 
 
+"""
+!!!Global Variables for Jefferson to Change:!!!
+"""
+Drift_Percentage_Limit = 10
+Important_Plots_Keywords = ['ForceCurrent_1.20A','VfC', 'PfC', 'Uniformity', 'Wc', 'Ith', 'Div1e2']
+"""
+!!!End of Changable Global Variables!!!
+"""
+
+
 def universal_load_csv(filepath):
     """
     This function reads .csv files for test types NFT, FFT and LIV.
@@ -240,7 +250,7 @@ def find_test_type(filename):
     return testtype
 
 
-def combinecsv(listoffiles):
+def combine_csv(listoffiles):
     """
     This function takes a list of files and combines them into a single dataframe,
     using universal_load_csv() to parse the files into dataframes,
@@ -250,21 +260,15 @@ def combinecsv(listoffiles):
     for file in listoffiles:
         # print('Processing {}'.format(file))
         if file == listoffiles[0]:
+            # We load the first file into a dataframe and append data
+            # from subsequent files to that dataframe
             main_df = makemulti(universal_load_csv(file), cycle(file))
-        elif "retest" in file.lower():
-            # Skip files with retest in the name
-            tqdm.write("Skipping Retest File: {}".format(file))
-            continue
-        elif "rerun" in file.lower():
-            # Skip files with rerun in the name
-            tqdm.write("Skipping Retest File: {}".format(file))
-            continue
-        elif "sn" in file.lower():
-            # Skip files with SN in the name
+        elif "retest" or "rerun" or "sn" in file.lower():
+            # Skip files with "retest", "rerun" or "sn" in the filename
             tqdm.write("Skipping Retest File: {}".format(file))
             continue
         elif re.search(r"u\d+", file, flags=re.IGNORECASE) != None:
-            # Skip files that have "u22" or similar in the filename
+            # Skip files that have "u22", "U12" or similar in the filename
             tqdm.write("Skipping Retest File: {}".format(file))
             continue
         else:
@@ -277,7 +281,7 @@ def combinecsv(listoffiles):
     return main_df
 
 
-def plotMPIdata(test_dataframe, drift=False):
+def plot_data_interactive(test_dataframe, drift=False):
     """
     Takes a test type (LIV, NFT or FFT) and a dataframe and creates an interactive grouped box plot via local host which
     opens in the user's default browser.
@@ -289,15 +293,15 @@ def plotMPIdata(test_dataframe, drift=False):
     label_raw = test_dataframe.columns.values.tolist()
 
     if drift == False:
-        testlabels = label_raw[9:]
+        # When plotting for raw data, test_labels can be found from column 9 onwards
+        test_labels = label_raw[9:]
+        test_dataframe.iloc[1:, 1:].replace(0, np.nan, inplace=True)
     else:
         test_dataframe.reset_index(level=0, inplace=True)
-        testlabels = label_raw[2:]
-
-    # Generate dictlist for data
-    dict_list_data = []
+        test_labels = label_raw[2:]
 
     def dict_generator_data(label):
+        # Define subfunction for generating a dictionary for the data of a given label
         new_dict = dict(
             type="box",
             y=test_dataframe[label],
@@ -306,13 +310,8 @@ def plotMPIdata(test_dataframe, drift=False):
         )
         return new_dict
 
-    for label in testlabels:
-        dict_list_data.append(dict_generator_data(label))
-
-    # Generate dictlist for the updatemenus
-    dict_list_menu = []
-
     def dict_generator_menu(label, label_list):
+        # Define subfunction for generating a dictionary of labels for the data
         label_index = label_list.index(label)
         temporary_list = [False] * (len(label_list))
         temporary_list[label_index] = True
@@ -321,18 +320,14 @@ def plotMPIdata(test_dataframe, drift=False):
             plotname = label
         else:
             plotname = label + " Drift"
-        new_dict = dict(
-            label=plotname, method="update", args=[{"visible": temporary_list}]
-        )
-        return new_dict
 
-    for label in testlabels:
-        dict_list_menu.append(dict_generator_menu(label, testlabels))
+        return dict(label=plotname, method="update", args=[{"visible": temporary_list}])
 
     # Put dictionary objects into the data construct
-    data = dict_list_data
+    dict_list_data = [dict_generator_data(label) for label in test_labels]
 
     # Put dictionary objects into the dropdownlist
+    dict_list_menu = [dict_generator_menu(label, test_labels) for label in test_labels]
     updatemenus = list(
         [
             dict(
@@ -349,25 +344,28 @@ def plotMPIdata(test_dataframe, drift=False):
         ]
     )
 
-    fig = dict({"data": data}, layout=dict(updatemenus=updatemenus))
+    fig = dict({"data": dict_list_data}, layout=dict(updatemenus=updatemenus))
 
     plotly.offline.plot(fig, validate=False)
 
 
-def saveMPIdata_universal(
-    test_dataframe, save_location, stress, drift=False, flyers=True
+def save_plot_universal(
+    test_dataframe, save_location, stress, drift=False, flyers=True, limit=True
 ):
     """
     This function plots boxplots with matplotlib and saves them in a specified save_location.
+    The argument drift indicates if the dataframe fed into the plotting function is a drift computation file.
+    The argument flyers indicates if flyers should be plot or not
     """
-    # Extract parameters from dataframe
+    global Drift_Percentage_Limit
 
+    # Extract parameters from dataframe
     label_raw = test_dataframe.columns.values.tolist()
     if drift == False:
-        testlabels = label_raw[9:]
+        test_labels = label_raw[9:]
         test_dataframe.iloc[1:, 1:].replace(0, np.nan, inplace=True)
     else:
-        testlabels = label_raw[1:]
+        test_labels = label_raw[1:]
 
     def series_values_as_dict(series_object):
         tmp = series_object.to_dict().values()
@@ -426,19 +424,18 @@ def saveMPIdata_universal(
                         numformat = "%d"
                     else:
                         numformat = "%.2f"
-                    # overlay the value:  on the line, from center to right
 
                     if element == "medians":
                         ax.text(
                             x_line_center + fontspacing,
                             y_line_center,  # Position
-                            numformat % y,  # Value (3f = 3 decimal float)
+                            numformat % y,  # Value
                             verticalalignment="center",  # Centered vertically with line
                             color="green",  # Value for median will be green
                             fontsize=fontsize,
                         )
 
-                    # Disable quartile numbers
+                    # Quartile numbers (disabled)
                     # elif element == "whiskers":
                     #     ax.text(
                     #         x_line_center + fontspacing,
@@ -453,16 +450,15 @@ def saveMPIdata_universal(
                         ax.text(
                             x_line_center + fontspacing,
                             y_line_center,  # Position
-                            numformat % y,  # Value (3f = 3 decimal float)
+                            numformat % y,
                             verticalalignment="center",  # Centered vertically with line
                             fontsize=fontsize,
                         )
 
-        fryers = bp[
-            "fliers"
-        ]  # Fliers are the 'outliers'. We want the values for these too!
-        # Iterate over it!
         if flyers == True:
+            # Fliers are the 'outliers'. We want the values for these too!
+            fryers = bp["fliers"]
+
             for fly in fryers:
                 fdata = fly.get_xydata()
                 if fdata.any() == False:
@@ -488,7 +484,7 @@ def saveMPIdata_universal(
                             )
 
     # Iterate through the test parameters and save a boxplot grouped by cycle time for each
-    for label in testlabels:
+    for label in test_labels:
         fig, axes = plt.subplots(1, figsize=(16, 10))
         boxplot = test_dataframe.boxplot(
             column=[label],
@@ -504,8 +500,10 @@ def saveMPIdata_universal(
         if drift == False:
             plt.title("Boxplot grouped by Hours under {}".format(stress))
         else:
-            plt.title("Boxplot of Drift for {}".format(stress))
-        plt.plot(median_x, median_y)
+            plt.title("Drift Plot for {}".format(label))
+            if limit == True:
+                plt.axhline(y=Drift_Percentage_Limit, ls="--", lw=4, c="red", alpha=0.4)
+        plt.plot(median_x, median_y, alpha=0.5)
         plt.suptitle("")
         plt.xlabel("Hours", fontsize=18)  # previously 16
         plt.ylabel(label, fontsize=18)
@@ -517,6 +515,7 @@ def saveMPIdata_universal(
         else:
             plt.savefig(save_location + label + "_Drift_boxplot.png", transparent=True)
         plt.close()
+
 
 def build_database():
     """
@@ -592,7 +591,7 @@ def call_build_database(folderpath, stress_type, measurement_type):
         )
 
         try:
-            main_df = combinecsv(list_of_files)
+            main_df = combine_csv(list_of_files)
             main_df.dropna(subset=["PART_INDEX"], inplace=True)
             main_df.to_csv(savepath)
         except PermissionError:
@@ -704,7 +703,7 @@ def generate_drift_statistics(dataframe, savelocation):
 
 def drift_calculation_select():
     """
-    Invoked by the 'Compute Drift' button in the GUI.
+    A flavor of drift_calculation() that requires you to select specific drift.xlsx files.
     Reads database .csv file generated using build_database() 
     for a single Reliability Test Order and calculates drift statistics
     using generate_drift_statistics()
@@ -840,7 +839,7 @@ def file_plot_interactive():
     listoffiles = root.tk.splitlist(stringoffiles)
     for i in listoffiles:
         main_df = pd.read_csv(i)
-        plotMPIdata(main_df)
+        plot_data_interactive(main_df)
 
     sys.stdout.flush()
 
@@ -868,7 +867,7 @@ def call_generate_raw_img(folderpath, stress_type, measurement_type):
             )
             if not os.path.exists(save_location):
                 os.makedirs(save_location)
-            saveMPIdata_universal(main_df, save_location, stress_type)
+            save_plot_universal(main_df, save_location, stress_type)
             del main_df  # Garbage Collect main_df to free up memory
 
 
@@ -929,7 +928,7 @@ def merge_drift_calc(dict_of_df):
     This function takes a dictionary of dataframes (dict_of_df) and iterates over
     the entries in the dictionary. Each dataframe corresponds to one sheet in the drift_calculation
     excel file. reshape_df() is used to transform
-    the dataframe into the form read by plotMPIdata() and saveMPIdata_universal().
+    the dataframe into the form read by plot_data_interactive() and save_plot_universal().
     """
 
     def reshape_df(label):
@@ -980,7 +979,7 @@ def drift_plot_interactive():
     for i in listoffiles:
         dict_of_df = pd.read_excel(i, sheet_name=None)
         drift_dataframe = merge_drift_calc(dict_of_df)
-        plotMPIdata(drift_dataframe, drift=True)
+        plot_data_interactive(drift_dataframe, drift=True)
 
     sys.stdout.flush()
 
@@ -989,7 +988,7 @@ def folder_drift_save_img():
     """
     Reads data from DriftCalculation.xlsx files in the selected directory.
     Iterates through each sheet in the .xlsx file (corresponding to each test parameter), 
-    followed by using saveMPIdata_universal() to plot boxplots for the sheet data.
+    followed by using save_plot_universal() to plot boxplots for the sheet data.
     Saves images in a '[Test_Type]_Drift_Boxplot' folder
     """
     folderpath = askdirectory(
@@ -1017,7 +1016,7 @@ def folder_drift_save_img():
 
     for pair in stress_test_pair:
         p = multiprocessing.Process(
-            target=call_generate_raw_img, args=(folderpath, pair[0], pair[1])
+            target=call_drift_plot, args=(folderpath, pair[0], pair[1])
         )
         processes.append(p)
         p.start()
@@ -1059,7 +1058,7 @@ def call_drift_plot(folderpath, stress_type, measurement_type):
         if not os.path.exists(save_location):
             os.makedirs(save_location)
         drift_dataframe = merge_drift_calc(dict_of_df)
-        saveMPIdata_universal(drift_dataframe, save_location, stress_type, drift=True)
+        save_plot_universal(drift_dataframe, save_location, stress_type, drift=True)
 
         del dict_of_df  # Garbage Collect main_df to free up memory
 

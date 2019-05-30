@@ -125,6 +125,10 @@ Changes:
 1. Ignore zero values for raw data plots as they are likely outliers
 2. Add additional stress types for future-proofing.
 3. Added multiprocessing for calculation and plot methods (~x3 Speed Increase)
+4. Titles on plot remove stress name, change title to "Drift plot for (parameter name)"
+5. Extend Stress Types to include AAA, BBB, CCC as placeholders for future tests
+6. 10% Drift Limit plot
+
 
 Pending Features:
 1. Automatic SNX replacement (take last value of retest dataframe)
@@ -133,16 +137,14 @@ Pending Features:
 4. Additional documentation for program/conversion of program into a package
 5. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
 6. Database files now save in their own folder (need to align on this)
-7. Titles on plot remove stress name, change title to "Drift plot for (parameter name)"
-8. 10% Drift limit (highlight where to change for Jefferson)
-9. Extend Stress Types to include AAA, BBB, CCC as placeholders for future tests
 10. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
 11. Plot reference with stress
 12. Put plots in folder for Raw and Absolute Drift. Inside folder will be all the plots, 
 except for a folder called "needed plots" which contain the plots of interest
 13. Program status updates while in operation
 14. Highlight areas where jefferson can change code/add info
-
+15. Scatter plot
+16. Enable/Disable plot with drift limit
 
 Known Bugs:
 1. AMS logo not included in .exe file (low priority)
