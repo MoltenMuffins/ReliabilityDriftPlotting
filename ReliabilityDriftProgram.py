@@ -5,9 +5,8 @@
 #  in conjunction with Tcl version 8.6
 #    May 10, 2019 05:46:41 PM +0800  platform: Windows NT
 
-print('Starting GUI...')
-
 import sys
+from multiprocessing import freeze_support
 
 try:
     import Tkinter as tk
@@ -117,7 +116,7 @@ class Toplevel1:
         self.drift_calculation_button.configure(pady="0")
         self.drift_calculation_button.configure(relief="flat")
         self.drift_calculation_button.configure(
-            text="""2. Compute Drift from Database (Select Files)"""
+            text="""2. Compute Drift from Database (Select Folder)"""
         )
         self.drift_calculation_button.configure(wraplength="180")
         tooltip_font = "TkDefaultFont"
@@ -448,5 +447,6 @@ class ToolTip(tk.Toplevel):
 # ===========================================================
 
 if __name__ == "__main__":
+    freeze_support()
     vp_start_gui()
 
