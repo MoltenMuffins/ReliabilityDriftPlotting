@@ -15,6 +15,8 @@ import sys
 from tempfile import TemporaryFile
 from tkinter import filedialog
 from tkinter.filedialog import askdirectory, askopenfilenames
+from openpyxl import Workbook
+from openpyxl.styles import Alignment
 
 # if os.name == "posix":
 #     import matplotlib
@@ -1217,6 +1219,99 @@ def call_drift_plot(
         del dict_of_df  # Garbage Collect main_df to free up memory
 
 
+def make_report():
+    """
+    Makes report xlsx files for a given RTO folder by comparing REF and Stress splits.
+    """
+
+    def build_table(stress, hours, label, Raw_0h, Raw_100h, Perc_Drift, Real_Drift):
+        # Header
+        sheet = book.create_sheet(title=label + "_" + str(hours) + "H")
+        sheet.merge_cells("A1:E1")
+        cell_stress = sheet.cell(row=1, column=1)
+        cell_stress.value = stress
+        cell_stress.alignment = Alignment(horizontal="center", vertical="center")
+
+        # SN Label
+        sheet.merge_cells("A2:A3")
+        SN_label = sheet.cell(row=2, column=1)
+        SN_label.value = "SN"
+        SN_label.alignment = Alignment(horizontal="center", vertical="bottom")
+
+        # Label Label
+        sheet.merge_cells("B2:C2")
+        cell_label = sheet.cell(row=2, column=2)
+        cell_label.value = label
+        cell_label.alignment = Alignment(horizontal="center", vertical="bottom")
+
+        # Drift Label
+        cell_label = sheet.cell(row=2, column=4)
+        cell_label.value = "Drift\n(%)"
+        cell_label.alignment = Alignment(horizontal="center")
+
+        # Real Drift Label
+        cell_label = sheet.cell(row=2, column=5)
+        cell_label.value = "Real\nDrift (%)"
+        cell_label.alignment = Alignment(horizontal="center")
+
+        sheet["B3"] = "0h"
+        sheet["B3"].alignment = Alignment(horizontal="center")
+        sheet["C3"] = str(hours) + "h"
+        sheet["C3"].alignment = Alignment(horizontal="center")
+
+        # sht.range('A1').options(transpose=True).value = [1,2,3,4]
+
+        # Dump SN
+        for i in range(1, 31):
+            sheet["A{}".format(i + 3)] = i
+
+        # Dump Raw 0H
+        for count, value in enumerate(Raw_0h):
+            sheet["B{}".format(count + 4)] = value
+
+        # Dump Raw 100H
+        for count, value in enumerate(Raw_100h):
+            sheet["C{}".format(count + 4)] = value
+
+        # Dump Raw Drift
+        for count, value in enumerate(Perc_Drift):
+            sheet["D{}".format(count + 4)] = value
+
+        # Dump Real Drift
+        for count, value in enumerate(Real_Drift):
+            sheet["E{}".format(count + 4)] = value
+
+    def calculate_drift(Raw_Data, Ref_Data):
+        real_drift = [abs((B - A) / B) * 100 for A, B in zip(Raw_Data, Ref_Data)]
+        return real_drift
+
+    def get_label_data(df, hour, label):
+        Data = df.loc[(df[0] == hour)].filter(like=label)
+        List_Data = Data.to_list()
+        return List_Data
+
+    Raw_Data_DF = _
+    Ref_Data_DF = _
+    stress = _
+    hour = _
+    label = _
+
+    # Get list of data for 0h and 100h for raw data
+    Raw_0h = get_label_data(Raw_Data_DF, 0, label)
+    Raw_100h = get_label_data(Raw_Data_DF, 100, label)
+
+    # Get list of data for 100h for ref data
+    Ref_100h = get_label_data(Ref_Data_DF, 100, label)
+
+    # Calculate Percentage Drift and Real Drift
+    Perc_Drift = calculate_drift(Raw_0h, Raw_100h)
+    Real_Drift = calculate_drift(Raw_100h, Ref_100h)
+
+    book = Workbook()
+    build_table(stress, hour, label, Raw_0h, Raw_100h, Perc_Drift, Real_Drift)
+    book.save("merging.xlsx")
+
+
 def DoAll():
     print("ReliabilityDriftProgram_support.DoAll")
     sys.stdout.flush()
@@ -1234,6 +1329,7 @@ def destroy_window():
     global top_level
     top_level.destroy()
     top_level = None
+
 
 if __name__ == "__main__":
     import ReliabilityDriftProgram
