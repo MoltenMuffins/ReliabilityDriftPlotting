@@ -21,6 +21,9 @@ from tkinter.filedialog import askdirectory, askopenfilenames
 
 #     matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
+import matplotlib.colors
+import matplotlib.cm
+from matplotlib.gridspec import GridSpec
 import numpy as np
 import pandas as pd
 import plotly
@@ -70,7 +73,7 @@ def universal_load_csv(filepath):
     """
     This function reads .csv files for test types NFT, FFT and LIV.
     """
-    with open(filepath, 'r') as f, TemporaryFile("w+") as t:
+    with open(filepath, "r") as f, TemporaryFile("w+") as t:
         # Clean the text file so that it can be parsed by the pandas .read_csv method
         for line in f:
             t.write(line.replace(" ", ""))
@@ -381,6 +384,7 @@ def save_plot_universal(
     flyers=True,
     limit=True,
     separate_Test_folders=False,
+    plot_type="Box",
 ):
     """
     This function plots boxplots with matplotlib and saves them in a specified save_location.
@@ -516,45 +520,105 @@ def save_plot_universal(
 
     def save(savestr):
         if drift == False:
-            plt.savefig(savestr + label + "_boxplot.png", transparent=True)
+            plt.savefig(
+                savestr + label + "_{}plot.png".format(plot_type), transparent=True
+            )
         else:
-            plt.savefig(savestr + label + "_Drift_boxplot.png", transparent=True)
+            plt.savefig(
+                savestr + label + "_Drift_{}plot.png".format(plot_type),
+                transparent=True,
+            )
 
     # Iterate through the test parameters and save a boxplot grouped by cycle time for each
     for label in test_labels:
-        fig, axes = plt.subplots(1, figsize=(16, 10))
-        boxplot = test_dataframe.boxplot(
-            column=[label],
-            by=["Hours"],
-            grid=True,
-            figsize=(8, 6),  # previously 12x8
-            ax=axes,
-            return_type="dict",
-        )
-        bp_dict = series_values_as_dict(boxplot)
-        median_x, median_y, fontspacing = find_values(bp_dict, axes)
-        add_values(bp_dict, axes, fontspacing)
+        _, axes = plt.subplots(1, figsize=(16, 10))
+        if plot_type == "Box":
+            boxplot = test_dataframe.boxplot(
+                column=[label],
+                by=["Hours"],
+                grid=True,
+                figsize=(8, 6),  # previously 12x8
+                ax=axes,
+                return_type="dict",
+            )
+            bp_dict = series_values_as_dict(boxplot)
+            median_x, median_y, fontspacing = find_values(bp_dict, axes)
+            add_values(bp_dict, axes, fontspacing)
 
-        if drift == False:
-            plt.title("Boxplot grouped by Hours under {}".format(stress))
+            plt.plot(median_x, median_y, alpha=0.5)
+            plt.suptitle("")
+            plt.xlabel("Hours", fontsize=16)  # previously 16
+            plt.ylabel(label, fontsize=16)
+            plt.xticks(fontsize=14)  # previously 12
+            plt.yticks(fontsize=14)
+
+            if drift == False:
+                plt.title(
+                    "Boxplot grouped by Hours under {}".format(stress), fontsize=16
+                )
+            else:
+                plt.title("Drift Plot for {}".format(label), fontsize=16)
+                if limit == True:
+                    plt.axhline(
+                        y=Drift_Percentage_Limit, ls="--", lw=2, c="red", alpha=0.4
+                    )
+
+        elif plot_type == "Scatter":
+            cmap = matplotlib.cm.get_cmap(name="rainbow")
+            norm = matplotlib.colors.Normalize(vmin=1, vmax=30)
+            fig = plt.figure(figsize=(7, 9))
+            test_dataframe.plot(
+                kind="scatter",
+                x="Hours",
+                y=label,
+                c=cmap(norm(test_dataframe["PART_INDEX"].values)),
+                figsize=(5, 6),
+                linewidths=0.5,
+                edgecolors="dimgrey",
+            )
+            plt.grid(alpha=0.2)
+            plt.title("{} value vs Hours colored by Unit SN".format(label))
+
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+
+            clb = plt.colorbar(sm)
+            clb.ax.set_title("Unit", fontsize=10)
+            clb.set_ticks([x for x in range(1, 31)])
+            clb.ax.grid(alpha=0.3)
+
+            gs = GridSpec(5, 7)
+            ax_marg_y = fig.add_subplot(gs[1:4, 3])
+            ax_marg_y.hist(x=test_dataframe[label], orientation="horizontal")
+
+            plt.suptitle("")
+            plt.xlabel("Hours", fontsize=10)
+            plt.ylabel(label, fontsize=10)
+            plt.xticks(fontsize=8)
+            plt.yticks(fontsize=8)
+
+            if drift == False:
+                plt.title(
+                    "Scatterplot grouped by Hours under {}".format(stress), fontsize=10
+                )
+            else:
+                plt.title("Drift Plot for {}".format(label), fontsize=10)
+                if limit == True:
+                    plt.axhline(
+                        y=Drift_Percentage_Limit, ls="--", lw=2, c="red", alpha=0.4
+                    )
+
         else:
-            plt.title("Drift Plot for {}".format(label))
-            if limit == True:
-                plt.axhline(y=Drift_Percentage_Limit, ls="--", lw=4, c="red", alpha=0.4)
-
-        plt.plot(median_x, median_y, alpha=0.5)
-        plt.suptitle("")
-        plt.xlabel("Hours", fontsize=18)  # previously 16
-        plt.ylabel(label, fontsize=18)
-        plt.xticks(fontsize=14)  # previously 12
-        plt.yticks(fontsize=14)
+            print(
+                'Please indicate either "Box" or "Scatter" (Case sensitive) for argument plot_type'
+            )
 
         # Save the boxplots in save_location
         if separate_Test_folders == True:
             save(save_location)
 
         else:
-            key_save_location = save_location + "/Key_Boxplots/"
+            key_save_location = save_location + "/Key_{}plots/".format(plot_type)
             try:
                 if not os.path.exists(key_save_location):
                     os.makedirs(key_save_location)
@@ -564,7 +628,8 @@ def save_plot_universal(
                 save(key_save_location)
             else:
                 save(save_location)
-        plt.close()
+        plt.close(fig="all")
+        plt.clf()
 
 
 def build_database():
@@ -605,9 +670,7 @@ def build_database():
     processes = []
 
     for pair in stress_test_pair:
-        p = Process(
-            target=call_build_database, args=(folderpath, pair[0], pair[1])
-        )
+        p = Process(target=call_build_database, args=(folderpath, pair[0], pair[1]))
         processes.append(p)
         p.start()
 
@@ -896,7 +959,11 @@ def file_plot_interactive():
 
 
 def call_generate_raw_img(
-    folderpath, stress_type, measurement_type, separate_Test_folders=False
+    folderpath,
+    stress_type,
+    measurement_type,
+    separate_Test_folders=False,
+    plot_type="Box",
 ):
     database_files = glob.glob(
         folderpath + "/{}/*_{}_Database.csv".format(stress_type, measurement_type),
@@ -912,11 +979,13 @@ def call_generate_raw_img(
 
     else:
         if separate_Test_folders == True:
-            save_location = folderpath + "/{}/{}_boxplot/".format(
-                stress_type, measurement_type
+            save_location = folderpath + "/{}/{}_{}plot/".format(
+                stress_type, measurement_type, plot_type
             )
         else:
-            save_location = folderpath + "/{}/Raw_Boxplots/".format(stress_type)
+            save_location = folderpath + "/{}/Raw_{}plots/".format(
+                stress_type, plot_type
+            )
 
         for file in database_files:
             main_df = pd.read_csv(file)
@@ -926,7 +995,11 @@ def call_generate_raw_img(
                 except FileExistsError:
                     pass
             save_plot_universal(
-                main_df, save_location, stress_type, separate_Test_folders
+                main_df,
+                save_location,
+                stress_type,
+                separate_Test_folders=separate_Test_folders,
+                plot_type=plot_type,
             )
             del main_df  # Garbage Collect main_df to free up memory
 
@@ -969,13 +1042,11 @@ def folder_save_img():
     ]
 
     for pair in stress_test_pair:
-        p = Process(
-            target=call_generate_raw_img, args=(folderpath, pair[0], pair[1])
-        )
+        p = Process(target=call_generate_raw_img, args=(folderpath, pair[0], pair[1]))
         processes.append(p)
         p.start()
 
-    for process in processes:   
+    for process in processes:
         process.join()
 
     tqdm.write("Complete")
@@ -1077,9 +1148,7 @@ def folder_drift_save_img():
     processes = []
 
     for pair in stress_test_pair:
-        p = Process(
-            target=call_drift_plot, args=(folderpath, pair[0], pair[1])
-        )
+        p = Process(target=call_drift_plot, args=(folderpath, pair[0], pair[1]))
         processes.append(p)
         p.start()
 
@@ -1092,7 +1161,11 @@ def folder_drift_save_img():
 
 
 def call_drift_plot(
-    folderpath, stress_type, measurement_type, separate_Test_folders=False
+    folderpath,
+    stress_type,
+    measurement_type,
+    separate_Test_folders=False,
+    plot_type="Box",
 ):
     database_files = glob.glob(
         folderpath
@@ -1117,11 +1190,13 @@ def call_drift_plot(
         # Passing sheet_name = None tells the read_excel function to read all sheets in the excel file
 
         if separate_Test_folders == True:
-            save_location = folderpath + "/{}/{}_Drift_boxplot/".format(
-                stress_type, measurement_type
+            save_location = folderpath + "/{}/{}_Drift_{}plot/".format(
+                stress_type, measurement_type, plot_type
             )
         else:
-            save_location = folderpath + "/{}/Drift_Boxplots/".format(stress_type)
+            save_location = folderpath + "/{}/Drift_{}plots/".format(
+                stress_type, plot_type
+            )
 
         if not os.path.exists(save_location):
             try:
@@ -1136,6 +1211,7 @@ def call_drift_plot(
             stress_type,
             drift=True,
             separate_Test_folders=separate_Test_folders,
+            plot_type=plot_type,
         )
 
         del dict_of_df  # Garbage Collect main_df to free up memory
@@ -1159,7 +1235,7 @@ def destroy_window():
     top_level.destroy()
     top_level = None
 
-
 if __name__ == "__main__":
     import ReliabilityDriftProgram
+
     ReliabilityDriftProgram.vp_start_gui()
