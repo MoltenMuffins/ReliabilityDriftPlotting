@@ -7,7 +7,7 @@
 # App Icon made by https://www.freepik.com/ from www.flaticon.com
 
 import time  # for optimizing, delete before build
-import multiprocessing
+from multiprocessing import Process, freeze_support
 import glob
 import os
 import re
@@ -44,8 +44,23 @@ except ImportError:
 """
 !!!Global Variables for Jefferson to Change:!!!
 """
+# Integer indicating where drift limit line should be
 Drift_Percentage_Limit = 10
-Important_Plots_Keywords = ['ForceCurrent_1.20A','VfC', 'PfC', 'Uniformity', 'Wc', 'Ith', 'Div1e2']
+
+# List of strings to match. Parameters matching these strings
+# will be placed in a separate folder from the rest of the plots.
+Important_Plots_Keywords = [
+    "forcecurrent_1.20a",
+    "vfc",
+    "pfc",
+    "uniformity",
+    "wc",
+    "ith",
+    "div1e2",
+]
+
+# Select between 'box' or 'scatter'
+Plot_Mode = "box"
 """
 !!!End of Changable Global Variables!!!
 """
@@ -55,7 +70,7 @@ def universal_load_csv(filepath):
     """
     This function reads .csv files for test types NFT, FFT and LIV.
     """
-    with open(filepath) as f, TemporaryFile("w+") as t:
+    with open(filepath, 'r') as f, TemporaryFile("w+") as t:
         # Clean the text file so that it can be parsed by the pandas .read_csv method
         for line in f:
             t.write(line.replace(" ", ""))
@@ -215,6 +230,7 @@ def find_stress(folderpath):
         "HTSL",
         "HAST",
         "Reference",
+        "REF",
         "AAA",
         "BBB",
         "CCC",
@@ -263,9 +279,17 @@ def combine_csv(listoffiles):
             # We load the first file into a dataframe and append data
             # from subsequent files to that dataframe
             main_df = makemulti(universal_load_csv(file), cycle(file))
-        elif "retest" or "rerun" or "sn" in file.lower():
+        elif "retest" in file.lower():
             # Skip files with "retest", "rerun" or "sn" in the filename
             tqdm.write("Skipping Retest File: {}".format(file))
+            continue
+        elif "sn" in file.lower():
+            # Skip files with "retest", "rerun" or "sn" in the filename
+            tqdm.write("Skipping SN File: {}".format(file))
+            continue
+        elif "rerun" in file.lower():
+            # Skip files with "retest", "rerun" or "sn" in the filename
+            tqdm.write("Skipping Rerun File: {}".format(file))
             continue
         elif re.search(r"u\d+", file, flags=re.IGNORECASE) != None:
             # Skip files that have "u22", "U12" or similar in the filename
@@ -350,7 +374,13 @@ def plot_data_interactive(test_dataframe, drift=False):
 
 
 def save_plot_universal(
-    test_dataframe, save_location, stress, drift=False, flyers=True, limit=True
+    test_dataframe,
+    save_location,
+    stress,
+    drift=False,
+    flyers=True,
+    limit=True,
+    separate_Test_folders=False,
 ):
     """
     This function plots boxplots with matplotlib and saves them in a specified save_location.
@@ -358,6 +388,7 @@ def save_plot_universal(
     The argument flyers indicates if flyers should be plot or not
     """
     global Drift_Percentage_Limit
+    global Important_Plots_Keywords
 
     # Extract parameters from dataframe
     label_raw = test_dataframe.columns.values.tolist()
@@ -483,6 +514,12 @@ def save_plot_universal(
                                 fontsize=fontsize,
                             )
 
+    def save(savestr):
+        if drift == False:
+            plt.savefig(savestr + label + "_boxplot.png", transparent=True)
+        else:
+            plt.savefig(savestr + label + "_Drift_boxplot.png", transparent=True)
+
     # Iterate through the test parameters and save a boxplot grouped by cycle time for each
     for label in test_labels:
         fig, axes = plt.subplots(1, figsize=(16, 10))
@@ -497,23 +534,36 @@ def save_plot_universal(
         bp_dict = series_values_as_dict(boxplot)
         median_x, median_y, fontspacing = find_values(bp_dict, axes)
         add_values(bp_dict, axes, fontspacing)
+
         if drift == False:
             plt.title("Boxplot grouped by Hours under {}".format(stress))
         else:
             plt.title("Drift Plot for {}".format(label))
             if limit == True:
                 plt.axhline(y=Drift_Percentage_Limit, ls="--", lw=4, c="red", alpha=0.4)
+
         plt.plot(median_x, median_y, alpha=0.5)
         plt.suptitle("")
         plt.xlabel("Hours", fontsize=18)  # previously 16
         plt.ylabel(label, fontsize=18)
         plt.xticks(fontsize=14)  # previously 12
         plt.yticks(fontsize=14)
+
         # Save the boxplots in save_location
-        if drift == False:
-            plt.savefig(save_location + label + "_boxplot.png", transparent=True)
+        if separate_Test_folders == True:
+            save(save_location)
+
         else:
-            plt.savefig(save_location + label + "_Drift_boxplot.png", transparent=True)
+            key_save_location = save_location + "/Key_Boxplots/"
+            try:
+                if not os.path.exists(key_save_location):
+                    os.makedirs(key_save_location)
+            except:
+                pass
+            if any(Keyword in label.lower() for Keyword in Important_Plots_Keywords):
+                save(key_save_location)
+            else:
+                save(save_location)
         plt.close()
 
 
@@ -525,7 +575,7 @@ def build_database():
     followed by the measurement_type keywords 'NFT, LIV, FFT'.
     
     If there are any files that are singular SN measurements, these measurement
-    values will be replace any older measurements made (based on measurement time/date)
+    values will be replaced by any older measurements made (based on measurement time/date)
     If any files are excel files, sheets with sheet names from 0 - 1000 will be
     processed into the dataset with empty sheets being ignored.
 
@@ -534,6 +584,7 @@ def build_database():
     An example of this folder_name structure would be 
     'C:/Datalogs/RTO-4149/HTSL/RTO-4149_NFT_Data.csv'
     """
+    freeze_support()
     folderpath = askdirectory(
         parent=root, initialdir="/", title="Please select an RTO folder"
     )
@@ -554,7 +605,7 @@ def build_database():
     processes = []
 
     for pair in stress_test_pair:
-        p = multiprocessing.Process(
+        p = Process(
             target=call_build_database, args=(folderpath, pair[0], pair[1])
         )
         processes.append(p)
@@ -586,8 +637,8 @@ def call_build_database(folderpath, stress_type, measurement_type):
         rto_num = str(m.group(1))
 
         # Define the location to save the files to
-        savepath = folderpath + "/{}/RTO-{}_{}_Database.csv".format(
-            stress_type, rto_num, measurement_type
+        savepath = folderpath + "/{}/RTO-{}_{}_{}_Database.csv".format(
+            stress_type, rto_num, stress_type, measurement_type
         )
 
         try:
@@ -602,7 +653,7 @@ def call_build_database(folderpath, stress_type, measurement_type):
             )
 
 
-def generate_drift_statistics(dataframe, savelocation):
+def generate_drift_statistics(dataframe, save_location):
     """    
     Calculates the following drift statistics: Average Drift, Absolute Average Drift, Maximum Absolute Drift,
     Mininum Absolute Drift, Raw Average Drift, Raw Average Drift, Maximum Raw Drift
@@ -620,7 +671,8 @@ def generate_drift_statistics(dataframe, savelocation):
 
     s = dataframe.PART_INDEX.unique()
     s = np.append(s, ["Min", "Max", "Mean", "Std"])
-    s_df = pd.DataFrame(s, columns=["PART_INDEX"])
+    s1_df = pd.DataFrame(s, columns=["PART_INDEX"])
+    s2_df = pd.DataFrame(s, columns=["PART_INDEX"])
 
     hour_range = dataframe.Hours.unique().tolist()
     cols = ["PART_INDEX"]
@@ -629,12 +681,12 @@ def generate_drift_statistics(dataframe, savelocation):
     dataframe.set_index(["Hours", "PART_INDEX"], inplace=True)
 
     # We save the data to an excelwriter object
-    with pd.ExcelWriter(savelocation + "RawDrift.xlsx") as rawwriter, pd.ExcelWriter(
-        savelocation + "AbsoluteDrift.xlsx"
+    with pd.ExcelWriter(save_location + "RawDrift.xlsx") as rawwriter, pd.ExcelWriter(
+        save_location + "AbsoluteDrift.xlsx"
     ) as abswriter:
         try:
-            dict_of_raw_drift = {label: s_df.copy() for label in labels}
-            dict_of_abs_drift = dict_of_raw_drift.copy()
+            dict_of_raw_drift = {label: s1_df.copy() for label in labels}
+            dict_of_abs_drift = {label: s2_df.copy() for label in labels}
 
             for label in labels:
                 baseline = dataframe[label][0]
@@ -696,7 +748,7 @@ def generate_drift_statistics(dataframe, savelocation):
         except ValueError:
             print(
                 "More than 30 values detected for {} hours, \nplease check data for {}".format(
-                    hour, savelocation
+                    hour, save_location
                 )
             )
 
@@ -759,9 +811,6 @@ def call_generate_drift_statistics(file):
         + "RTO-{}_{}_".format(rto_num, measurement_type)
     )
 
-    if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
-        os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
-
     # print("Saving calculations to: ", os.path.dirname(file) + "/Drift Calculation/")
 
     main_df = pd.read_csv(file)
@@ -778,7 +827,7 @@ def drift_calculation():
 
     After calculation, a save prompt is invoked. Saves drift statistics as an excel file.
     """
-
+    freeze_support()
     folderpath = askdirectory(
         parent=root, initialdir="/", title="Please select an RTO folder"
     )
@@ -800,9 +849,11 @@ def drift_calculation():
     processes = []
 
     for file in listoffiles:
+        if not os.path.exists(os.path.dirname(file) + "/Drift Calculation/"):
+            os.makedirs(os.path.dirname(file) + "/Drift Calculation/")
         # Create processes and add them to the list of processes
         # call_generate_drift_statistics has to be a global function
-        p = multiprocessing.Process(target=call_generate_drift_statistics, args=(file,))
+        p = Process(target=call_generate_drift_statistics, args=(file,))
         processes.append(p)
         p.start()
 
@@ -844,12 +895,13 @@ def file_plot_interactive():
     sys.stdout.flush()
 
 
-def call_generate_raw_img(folderpath, stress_type, measurement_type):
+def call_generate_raw_img(
+    folderpath, stress_type, measurement_type, separate_Test_folders=False
+):
     database_files = glob.glob(
         folderpath + "/{}/*_{}_Database.csv".format(stress_type, measurement_type),
         recursive=True,
     )
-
     listlen = len(database_files)
 
     if listlen == 0:
@@ -859,15 +911,23 @@ def call_generate_raw_img(folderpath, stress_type, measurement_type):
         pass
 
     else:
-        # database_files = glob.glob(folderpath+'/**/*Database.csv', recursive=True)
-        for file in database_files:
-            main_df = pd.read_csv(file)
+        if separate_Test_folders == True:
             save_location = folderpath + "/{}/{}_boxplot/".format(
                 stress_type, measurement_type
             )
+        else:
+            save_location = folderpath + "/{}/Raw_Boxplots/".format(stress_type)
+
+        for file in database_files:
+            main_df = pd.read_csv(file)
             if not os.path.exists(save_location):
-                os.makedirs(save_location)
-            save_plot_universal(main_df, save_location, stress_type)
+                try:
+                    os.makedirs(save_location)
+                except FileExistsError:
+                    pass
+            save_plot_universal(
+                main_df, save_location, stress_type, separate_Test_folders
+            )
             del main_df  # Garbage Collect main_df to free up memory
 
 
@@ -885,6 +945,7 @@ def folder_save_img():
     An example of this folder_name structure would be 
     'C:/Datalogs/RTO-4149/HTSL/NFT_boxplot'
     """
+    freeze_support()
     folderpath = askdirectory(
         parent=root, initialdir="/", title="Please select a folder_name"
     )
@@ -908,13 +969,13 @@ def folder_save_img():
     ]
 
     for pair in stress_test_pair:
-        p = multiprocessing.Process(
+        p = Process(
             target=call_generate_raw_img, args=(folderpath, pair[0], pair[1])
         )
         processes.append(p)
         p.start()
 
-    for process in processes:
+    for process in processes:   
         process.join()
 
     tqdm.write("Complete")
@@ -991,6 +1052,7 @@ def folder_drift_save_img():
     followed by using save_plot_universal() to plot boxplots for the sheet data.
     Saves images in a '[Test_Type]_Drift_Boxplot' folder
     """
+    freeze_support()
     folderpath = askdirectory(
         parent=root, initialdir="/", title="Please select a RTO folder"
     )
@@ -1015,7 +1077,7 @@ def folder_drift_save_img():
     processes = []
 
     for pair in stress_test_pair:
-        p = multiprocessing.Process(
+        p = Process(
             target=call_drift_plot, args=(folderpath, pair[0], pair[1])
         )
         processes.append(p)
@@ -1029,7 +1091,9 @@ def folder_drift_save_img():
     sys.stdout.flush()
 
 
-def call_drift_plot(folderpath, stress_type, measurement_type):
+def call_drift_plot(
+    folderpath, stress_type, measurement_type, separate_Test_folders=False
+):
     database_files = glob.glob(
         folderpath
         + "/{}/Drift Calculation/*_{}_AbsoluteDrift.xlsx".format(
@@ -1052,13 +1116,27 @@ def call_drift_plot(folderpath, stress_type, measurement_type):
         dict_of_df = pd.read_excel(database_files[0], sheet_name=None)
         # Passing sheet_name = None tells the read_excel function to read all sheets in the excel file
 
-        save_location = folderpath + "/{}/{}_Drift_boxplot/".format(
-            stress_type, measurement_type
-        )
+        if separate_Test_folders == True:
+            save_location = folderpath + "/{}/{}_Drift_boxplot/".format(
+                stress_type, measurement_type
+            )
+        else:
+            save_location = folderpath + "/{}/Drift_Boxplots/".format(stress_type)
+
         if not os.path.exists(save_location):
-            os.makedirs(save_location)
+            try:
+                os.makedirs(save_location)
+            except FileExistsError:
+                pass
+
         drift_dataframe = merge_drift_calc(dict_of_df)
-        save_plot_universal(drift_dataframe, save_location, stress_type, drift=True)
+        save_plot_universal(
+            drift_dataframe,
+            save_location,
+            stress_type,
+            drift=True,
+            separate_Test_folders=separate_Test_folders,
+        )
 
         del dict_of_df  # Garbage Collect main_df to free up memory
 
@@ -1084,5 +1162,4 @@ def destroy_window():
 
 if __name__ == "__main__":
     import ReliabilityDriftProgram
-
     ReliabilityDriftProgram.vp_start_gui()

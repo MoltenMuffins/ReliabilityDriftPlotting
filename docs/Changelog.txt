@@ -148,3 +148,47 @@ except for a folder called "needed plots" which contain the plots of interest
 
 Known Bugs:
 1. AMS logo not included in .exe file (low priority)
+
+################ 29 May 2019 ################
+Changes:
+1. Put plots in folder for Raw and Absolute Drift. Inside folder will be all the plots, 
+except for a folder called "Key Boxplots" which contain the plots of interest
+2. Change database naming from eg. RTO-4148_LIV_Database.csv to RTO-4148_HTOL_LIV_Database.csv
+
+Pending Features:
+1. Automatic SNX replacement (take last value of retest dataframe)
+2. Option to select folder or individual files for each button function
+3. Additional documentation for program/conversion of program into a package
+4. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
+5. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
+6. Plot reference with stress
+7. Program status updates while in operation
+8. Highlight areas where jefferson can change code/add info
+9. Scatter plot
+10. Enable/Disable plot with drift limit
+
+Known Bugs:
+1. AMS logo not included in .exe file (low priority)
+
+################ 4 June 2019 ################
+Changes:
+1. Fixed: Raw Drift doesn't include negative values
+Was due to Abs_Drift not being a deep copy of Raw_Drift
+2. Fixed: multiprocessing opens multiple GUI windows
+Used freeze_support() to stop child processes from opening more GUIs
+
+Pending Features:
+1. Automatic SNX replacement (take last value of retest dataframe)
+2. Option to select folder or individual files for each button function
+3. Additional documentation for program/conversion of program into a package
+4. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
+5. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
+6. Plot reference with stress
+7. Program status updates while in operation
+8. Highlight areas where jefferson can change code/add info
+9. Scatter plot
+10. Enable/Disable plot with drift limit
+
+Known Bugs:
+1. AMS logo not included in .exe file (low priority)
+
