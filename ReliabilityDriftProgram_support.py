@@ -59,7 +59,7 @@ Important_Plots_Keywords = [
     "uniformity",
     "wc",
     "ith",
-    "div1e2",
+    "div1e2"
 ]
 
 # Select between 'box' or 'scatter'
@@ -69,7 +69,8 @@ Plot_Mode = "box"
 # Raw_Drift = ((T_t - T_0)/T_0)*100
 # Abs_Drift = abs(Raw_Drift)
 # Real_Drift = ((T_t - T_0)/(USL-LSL)) - ((T_median_ref_t - T_median_ref_0)/(USL-LSL))
-
+# Dummy_Calc = 0
+# Dummy_Calc2 = 0
 """
 !!!End of Changable Global Variables!!!
 """
@@ -520,12 +521,12 @@ def save_plot_universal(
     def save(savestr):
         if drift == False:
             plt.savefig(
-                savestr + label + "_{}plot.png".format(plot_type), transparent=True
+                savestr + label + "_{}plot.png".format(plot_type), transparent=True, bbox_inches = "tight"
             )
         else:
             plt.savefig(
                 savestr + label + "_Drift_{}plot.png".format(plot_type),
-                transparent=True,
+                transparent=True, bbox_inches = "tight"
             )
 
     # Iterate through the test parameters and save a boxplot grouped by cycle time for each
@@ -555,7 +556,7 @@ def save_plot_universal(
                             markersize=2
                             )
             plt.plot(median_x, median_y, alpha=0.5)
-            plt.tight_layout()
+            # plt.tight_layout()
             plt.suptitle("")
             plt.xlabel("Hours", fontsize=8)  # previously 22
             plt.ylabel(label, fontsize=8)

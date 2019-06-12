@@ -201,15 +201,16 @@ Changes:
 
 Pending Features:
 1. Automatic SNX replacement (take last value of retest dataframe)
-2. Option to select folder or individual files for each button function
 3. Additional documentation for program/conversion of program into a package
-4. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
 5. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
-6. Plot reference with stress
-7. Program status updates while in operation
+7. Program status updates while in operation (luxury)
 8. Highlight areas where jefferson can change code/add info
-9. Scatter Plot Button
+9. Scatter Plot Button 
 10. Enable/Disable Drift Limit plotting button
+11. Search for Ref data in RTO folder that corresponds to stress eg. RHTOL2 for HTOL2
+12. Add median for drift Calculations
+13. Median line for Ref on Raw boxplots Bonus: Ref+Raw boxplotting 
+
 
 Known Bugs:
 1. AMS logo not included in .exe file (low priority)
