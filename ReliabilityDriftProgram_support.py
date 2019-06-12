@@ -64,6 +64,12 @@ Important_Plots_Keywords = [
 
 # Select between 'box' or 'scatter'
 Plot_Mode = "box"
+
+# Calculations for Drift
+# Raw_Drift = ((T_t - T_0)/T_0)*100
+# Abs_Drift = abs(Raw_Drift)
+# Real_Drift = ((T_t - T_0)/(USL-LSL)) - ((T_median_ref_t - T_median_ref_0)/(USL-LSL))
+
 """
 !!!End of Changable Global Variables!!!
 """
