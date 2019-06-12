@@ -441,7 +441,7 @@ def save_plot_universal(
         return median_x, median_y, fontspacing
 
     def add_values(bp, ax, fontspacing):
-        fontsize = 12
+        fontsize = 20
         # fontspacing = 0.27
 
         """ This actually adds the numbers to the various points of the boxplots"""
@@ -509,7 +509,7 @@ def save_plot_universal(
                                 markeredgecolor="tab:orange",
                             )
                             ax.text(
-                                x - fontspacing,
+                                x - fontspacing - (fontsize/100),
                                 y,
                                 numformat % y,
                                 verticalalignment="center",
@@ -531,26 +531,27 @@ def save_plot_universal(
 
     # Iterate through the test parameters and save a boxplot grouped by cycle time for each
     for label in test_labels:
-        _, axes = plt.subplots(1, figsize=(16, 10))
+        _, axes = plt.subplots(1, figsize=(14, 16))
         if plot_type == "Box":
             boxplot = test_dataframe.boxplot(
                 column=[label],
                 by=["Hours"],
                 grid=True,
-                figsize=(8, 6),  # previously 12x8
+                figsize=(12, 16),  # previously 12x8
                 ax=axes,
                 return_type="dict",
             )
+            axes.set_anchor('E')
             bp_dict = series_values_as_dict(boxplot)
             median_x, median_y, fontspacing = find_values(bp_dict, axes)
             add_values(bp_dict, axes, fontspacing)
 
             plt.plot(median_x, median_y, alpha=0.5)
             plt.suptitle("")
-            plt.xlabel("Hours", fontsize=16)  # previously 16
-            plt.ylabel(label, fontsize=16)
-            plt.xticks(fontsize=14)  # previously 12
-            plt.yticks(fontsize=14)
+            plt.xlabel("Hours", fontsize=22)  # previously 16
+            plt.ylabel(label, fontsize=22)
+            plt.xticks(fontsize=23)  # previously 12
+            plt.yticks(fontsize=23)
 
             if drift == False:
                 plt.title(

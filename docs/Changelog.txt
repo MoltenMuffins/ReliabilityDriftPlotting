@@ -192,3 +192,24 @@ Pending Features:
 Known Bugs:
 1. AMS logo not included in .exe file (low priority)
 
+################ 12 June 2019 ################
+Changes:
+1. Added option of scatter plotting (button not implemented yet)
+2. Plotting function has an option to enable/disable drift limit (button not implemented yet)
+3. Trying to implement batch creation of tables used in RTO reporting
+4. Changed format of boxplots to be more vertical than horizontal + increased fontsize (Still having issues with number formatting where numbers clash)
+
+Pending Features:
+1. Automatic SNX replacement (take last value of retest dataframe)
+2. Option to select folder or individual files for each button function
+3. Additional documentation for program/conversion of program into a package
+4. Separate boxplotting method for reliability test data (Plot reliabilty data against itself by date instead of cycle time)
+5. Additional Drift Computations that Jefferson can change (Abs Drift, Raw Drift, Test Drift 1, Test Drift 2...)
+6. Plot reference with stress
+7. Program status updates while in operation
+8. Highlight areas where jefferson can change code/add info
+9. Scatter Plot Button
+10. Enable/Disable Drift Limit plotting button
+
+Known Bugs:
+1. AMS logo not included in .exe file (low priority)
