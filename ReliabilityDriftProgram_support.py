@@ -382,6 +382,7 @@ def save_plot_universal(
     stress,
     drift=False,
     flyers=True,
+    annotation=False,
     limit=True,
     separate_Test_folders=False,
     plot_type="Box",
@@ -406,7 +407,7 @@ def save_plot_universal(
         tmp = series_object.to_dict().values()
         return [y for y in tmp][0]
 
-    def find_values(bp, ax):
+    def find_values(bp, ax, output_spacing):
         """
         find_values() takes a boxplot dictionary as well as plot axes.
         It returns the coordinates of the median lines as well as the optimal
@@ -425,20 +426,12 @@ def save_plot_universal(
         # in order to give us the coordinates of the center of the median line
         median_y = [i[0][1] for i in median_data]
         median_x = [(i[0][0] + (i[1][0] - i[0][0]) / 2) for i in median_data]
-
-        # The fontspacing is half the width of a median line + 0.02
-        fontspacing = ((median_data[0][1][0] - median_data[0][0][0]) / 2) + 0.02
-
-        # bins = len(median_x)
-        # if bins >= 5:
-        #     fontspacing = 0.275
-        # elif bins == 4:
-        #     fontspacing = 0.25
-        # elif bins == 3:
-        #     fontspacing = 0.18
-        # else:
-        #     fontspacing = 0.16
-        return median_x, median_y, fontspacing
+        if output_spacing == True:
+            # The fontspacing is half the width of a median line + 0.02
+            fontspacing = ((median_data[0][1][0] - median_data[0][0][0]) / 2) + 0.02
+            return median_x, median_y, fontspacing
+        else:
+            return median_x, median_y
 
     def add_values(bp, ax, fontspacing):
         fontsize = 20
@@ -531,37 +524,47 @@ def save_plot_universal(
 
     # Iterate through the test parameters and save a boxplot grouped by cycle time for each
     for label in test_labels:
-        _, axes = plt.subplots(1, figsize=(14, 16))
+        _, axes = plt.subplots(1, figsize=(3, 5))
         if plot_type == "Box":
             boxplot = test_dataframe.boxplot(
                 column=[label],
                 by=["Hours"],
                 grid=True,
-                figsize=(12, 16),  # previously 12x8
+                figsize=(3, 5),  # previously 12x16
                 ax=axes,
                 return_type="dict",
             )
             axes.set_anchor('E')
             bp_dict = series_values_as_dict(boxplot)
-            median_x, median_y, fontspacing = find_values(bp_dict, axes)
-            add_values(bp_dict, axes, fontspacing)
-
+            if annotation == True:
+                median_x, median_y, fontspacing = find_values(bp_dict, axes, output_spacing=True)
+                add_values(bp_dict, axes, fontspacing)
+            else:
+                median_x, median_y = find_values(bp_dict, axes, output_spacing=False)
+                flyers = bp_dict["fliers"]
+                for fly in flyers:
+                    fly.set(marker="o",
+                            markerfacecolor="tab:orange",
+                            markeredgecolor="tab:orange",
+                            markersize=2
+                            )
             plt.plot(median_x, median_y, alpha=0.5)
+            plt.tight_layout()
             plt.suptitle("")
-            plt.xlabel("Hours", fontsize=22)  # previously 16
-            plt.ylabel(label, fontsize=22)
-            plt.xticks(fontsize=23)  # previously 12
-            plt.yticks(fontsize=23)
+            plt.xlabel("Hours", fontsize=8)  # previously 22
+            plt.ylabel(label, fontsize=8)
+            plt.xticks(fontsize=10)  # previously 26
+            plt.yticks(fontsize=10)
 
             if drift == False:
                 plt.title(
-                    "Boxplot grouped by Hours under {}".format(stress), fontsize=16
-                )
+                    "Boxplot grouped by Hours under {}".format(stress), fontsize=6
+                ) # previously 16
             else:
-                plt.title("Drift Plot for {}".format(label), fontsize=16)
+                plt.title("Drift Plot for {}".format(label), fontsize=6) # previously 16
                 if limit == True:
                     plt.axhline(
-                        y=Drift_Percentage_Limit, ls="--", lw=2, c="red", alpha=0.4
+                        y=Drift_Percentage_Limit, ls="--", lw=1, c="red", alpha=0.4
                     )
 
         elif plot_type == "Scatter":
